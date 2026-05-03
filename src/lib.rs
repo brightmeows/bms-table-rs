@@ -23,7 +23,7 @@
 //! ```rust,no_run
 //! # #[tokio::main]
 //! # #[cfg(feature = "reqwest")]
-//! # async fn main() -> anyhow::Result<()> {
+//! # async fn main() -> Result<(), bms_table::fetch::Error> {
 //! use bms_table::fetch::reqwest::Fetcher;
 //!
 //! let fetcher = Fetcher::lenient()?;
@@ -40,7 +40,7 @@
 //!
 //! ```rust
 //! # #[cfg(feature = "serde")]
-//! # fn main() -> anyhow::Result<()> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use bms_table::{BmsTable, BmsTableHeader, BmsTableData};
 //!
 //! let header_json = r#"{ "name": "Test", "symbol": "t", "data_url": "charts.json", "course": [], "level_order": [] }"#;
@@ -59,7 +59,7 @@
 //! ```rust,no_run
 //! # #[tokio::main]
 //! # #[cfg(feature = "reqwest")]
-//! # async fn main() -> anyhow::Result<()> {
+//! # async fn main() -> Result<(), bms_table::fetch::Error> {
 //! use bms_table::fetch::reqwest::Fetcher;
 //! let fetcher = Fetcher::lenient()?;
 //! let listes = fetcher.fetch_table_list("https://example.com/table_list.json").await?.tables;

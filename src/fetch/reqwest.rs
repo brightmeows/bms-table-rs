@@ -73,12 +73,12 @@ impl Fetcher {
     ///
     /// Returns an error if fetching or parsing the table fails.
     pub async fn fetch_table(&self, web_url: impl IntoUrl) -> Result<FetchedTable, FetchError> {
-        let web_url = web_url.into_url().map_err(|e| FetchError::Validation {
+        let web_url = web_url.into_url().map_err(|e| FetchError::UrlResolve {
             field: "web_url",
-            reason: e.to_string(),
+            msg: e.to_string(),
         })?;
 
-        let web_page_text = self.fetch_text(web_url.clone(), "web page").await?;
+        let web_page_text = self.fetch_text(web_url.clone()).await?;
 
         let (web_header_query, web_used_text) =
             header_query_with_fallback::<BmsTableHeader>(&web_page_text).map_err(|e| {
@@ -92,14 +92,12 @@ impl Fetcher {
                 let header_json_url =
                     web_url
                         .join(&header_url_string)
-                        .map_err(|e| FetchError::Validation {
+                        .map_err(|e| FetchError::UrlResolve {
                             field: "header_json_url",
-                            reason: e.to_string(),
+                            msg: e.to_string(),
                         })?;
 
-                let header_text = self
-                    .fetch_text(header_json_url.clone(), "header json")
-                    .await?;
+                let header_text = self.fetch_text(header_json_url.clone()).await?;
 
                 let (header_query2, header_used_text) =
                     header_query_with_fallback::<BmsTableHeader>(&header_text).map_err(|e| {
@@ -120,17 +118,13 @@ impl Fetcher {
         let data_json_url =
             header_json_url
                 .join(&header.data_url)
-                .map_err(|e| FetchError::Validation {
+                .map_err(|e| FetchError::UrlResolve {
                     field: "data_url",
-                    reason: e.to_string(),
+                    msg: e.to_string(),
                 })?;
 
         let (data, data_raw) = self
-            .fetch_json_with_fallback::<BmsTableData>(
-                data_json_url.clone(),
-                "data json",
-                "data json",
-            )
+            .fetch_json_with_fallback::<BmsTableData>(data_json_url.clone(), "data json")
             .await?;
 
         Ok(FetchedTable {
@@ -153,13 +147,13 @@ impl Fetcher {
         &self,
         web_url: impl IntoUrl,
     ) -> Result<FetchedTableList, FetchError> {
-        let list_url = web_url.into_url().map_err(|e| FetchError::Validation {
+        let list_url = web_url.into_url().map_err(|e| FetchError::UrlResolve {
             field: "web_url",
-            reason: e.to_string(),
+            msg: e.to_string(),
         })?;
 
         let (list, raw_used) = self
-            .fetch_json_with_fallback::<BmsTableList>(list_url, "table list", "table list json")
+            .fetch_json_with_fallback::<BmsTableList>(list_url, "table list json")
             .await?;
         Ok(FetchedTableList {
             tables: list.listes,
@@ -167,16 +161,12 @@ impl Fetcher {
         })
     }
 
-    /// Fetch a URL as text, attaching contextual error messages.
+    /// Fetch a URL as text.
     ///
     /// # Errors
     ///
     /// Returns an error if the request fails or the body cannot be read as text.
-    async fn fetch_text(
-        &self,
-        url: reqwest::Url,
-        _fetch_ctx: &'static str,
-    ) -> Result<String, FetchError> {
+    async fn fetch_text(&self, url: reqwest::Url) -> Result<String, FetchError> {
         self.client
             .get(url)
             .send()
@@ -195,10 +185,9 @@ impl Fetcher {
     async fn fetch_json_with_fallback<T: DeserializeOwned>(
         &self,
         url: reqwest::Url,
-        fetch_ctx: &'static str,
         parse_ctx: &'static str,
     ) -> Result<(T, String), FetchError> {
-        let text = self.fetch_text(url, fetch_ctx).await?;
+        let text = self.fetch_text(url).await?;
         parse_json_str_with_fallback::<T>(&text).map_err(|e| FetchError::Parse {
             context: format!("When parsing {parse_ctx}: {e}"),
         })

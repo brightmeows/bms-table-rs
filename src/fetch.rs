@@ -37,23 +37,35 @@ pub enum Error {
     #[cfg(feature = "reqwest")]
     #[error("network error: {0}")]
     Network(#[from] ::reqwest::Error),
+
     /// JSON parse error with context.
     #[error("parse error: {context}")]
     Parse {
         /// Context description.
         context: String,
     },
-    /// Field validation error.
-    #[error("validation error: {field} - {reason}")]
-    Validation {
+
+    /// URL resolution error.
+    #[error("url resolve error: {field}: {msg}")]
+    UrlResolve {
         /// Field name.
         field: &'static str,
-        /// Reason for validation failure.
-        reason: String,
+        /// Error message.
+        msg: String,
     },
+
+    /// Invalid CSS selector.
+    #[error("invalid selector: {0}")]
+    InvalidSelector(String),
+
+    /// BMS table field not found in HTML.
+    #[error("bmstable field not found in html")]
+    HtmlExtraction,
+
     /// Missing required field.
     #[error("missing required field: {0}")]
     MissingField(&'static str),
+
     /// Cyclic header resolution detected.
     #[error("cycle detected in header resolution")]
     CyclicHeader,
@@ -78,7 +90,6 @@ pub mod reqwest;
 
 use std::future::Future;
 
-use anyhow::{Context, Result, anyhow};
 use scraper::{ElementRef, Html, Selector};
 use serde::de::DeserializeOwned;
 
@@ -154,12 +165,14 @@ pub fn replace_control_chars(s: &str) -> String {
 /// # Errors
 ///
 /// Returns an error when both the original and cleaned strings fail to deserialize.
-pub fn parse_json_str_with_fallback<T: DeserializeOwned>(raw: &str) -> Result<(T, String)> {
+pub fn parse_json_str_with_fallback<T: DeserializeOwned>(raw: &str) -> Result<(T, String), Error> {
     match serde_json::from_str::<T>(raw) {
         Ok(v) => Ok((v, raw.to_string())),
         Err(_) => {
             let cleaned = replace_control_chars(raw);
-            let v = serde_json::from_str::<T>(&cleaned)?;
+            let v = serde_json::from_str::<T>(&cleaned).map_err(|e| Error::Parse {
+                context: e.to_string(),
+            })?;
             Ok((v, cleaned))
         }
     }
@@ -179,14 +192,13 @@ pub fn parse_json_str_with_fallback<T: DeserializeOwned>(raw: &str) -> Result<(T
 /// Returns an error when the input is HTML but the bmstable field cannot be found.
 pub fn get_web_header_json_value<T: DeserializeOwned>(
     response_str: &str,
-) -> Result<HeaderQueryContent<T>> {
+) -> Result<HeaderQueryContent<T>, Error> {
     // First try parsing as JSON (remove illegal control characters before parsing); if it fails, treat as HTML and extract the bmstable URL
     let cleaned = replace_control_chars(response_str);
     match serde_json::from_str::<T>(&cleaned) {
         Ok(header_json) => Ok(HeaderQueryContent::Value(header_json)),
         Err(_) => {
-            let bmstable_url = try_extract_bmstable_from_html(response_str)
-                .context("When extracting bmstable url")?;
+            let bmstable_url = try_extract_bmstable_from_html(response_str)?;
             Ok(HeaderQueryContent::Url(bmstable_url))
         }
     }
@@ -203,7 +215,7 @@ pub fn get_web_header_json_value<T: DeserializeOwned>(
 /// Returns an error when both attempts fail to extract a header URL or parse JSON.
 pub fn header_query_with_fallback<T: DeserializeOwned>(
     raw: &str,
-) -> Result<(HeaderQueryContent<T>, String)> {
+) -> Result<(HeaderQueryContent<T>, String), Error> {
     match get_web_header_json_value::<T>(raw) {
         Ok(v) => Ok((v, raw.to_string())),
         Err(_) => {
@@ -221,9 +233,10 @@ pub fn header_query_with_fallback<T: DeserializeOwned>(
 /// # Errors
 ///
 /// Returns an error when the target tag is not found or `content` is empty.
-pub fn try_extract_bmstable_from_html(html_content: &str) -> Result<String> {
+pub fn try_extract_bmstable_from_html(html_content: &str) -> Result<String, Error> {
     let document = Html::parse_document(html_content);
-    let meta_selector = Selector::parse("meta").map_err(|_| anyhow!("meta tag not found"))?;
+    let meta_selector =
+        Selector::parse("meta").map_err(|e| Error::InvalidSelector(e.to_string()))?;
     let link_selector = Selector::parse("link").ok();
     let a_selector = Selector::parse("a").ok();
     let script_selector = Selector::parse("script").ok();
@@ -282,10 +295,7 @@ pub fn try_extract_bmstable_from_html(html_content: &str) -> Result<String> {
                 .map(|(start, end)| html_content[start..end].to_string())
         });
 
-    candidate.map_or_else(
-        || Err(anyhow!("bmstable field or header JSON hint not found")),
-        Ok,
-    )
+    candidate.map_or_else(|| Err(Error::HtmlExtraction), Ok)
 }
 
 /// Find the start and end indices of a substring like "*header*.json" in raw text.

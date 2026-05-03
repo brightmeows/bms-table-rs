@@ -9,16 +9,22 @@
 #![cfg_attr(not(feature = "reqwest"), allow(unused_imports))]
 
 #[cfg(feature = "reqwest")]
+use bms_table::fetch::Error as FetchError;
+#[cfg(feature = "reqwest")]
 use bms_table::fetch::reqwest::Fetcher;
 #[cfg(feature = "reqwest")]
 use url::Url;
 
 #[cfg(feature = "reqwest")]
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), FetchError> {
     let url = Url::parse(
         "https://script.google.com/macros/s/AKfycbzaQbcI9UZDcDlSHHl2NHilhmePrNrwxRdOFkmIXsfnbfksKKmAB3V65WZ8jPWU-7E/exec?table=tablelist",
-    )?;
+    )
+    .map_err(|e| FetchError::UrlResolve {
+        field: "url",
+        msg: e.to_string(),
+    })?;
 
     let fetcher = Fetcher::lenient()?;
     let out = fetcher.fetch_table_list(url.clone()).await?;

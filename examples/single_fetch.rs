@@ -16,9 +16,9 @@ async fn main() -> Result<(), FetchError> {
     let url = env::args()
         .nth(1)
         .unwrap_or_else(|| "https://stellabms.xyz/sl/table.html".to_string());
-    let url = Url::parse(&url).map_err(|e| FetchError::Validation {
+    let url = Url::parse(&url).map_err(|e| FetchError::UrlResolve {
         field: "url",
-        reason: e.to_string(),
+        msg: e.to_string(),
     })?;
 
     let fetcher = Fetcher::lenient()?;
