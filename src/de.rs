@@ -162,3 +162,66 @@ where
         ))),
     }
 }
+
+#[allow(clippy::missing_docs_in_private_items)]
+#[derive(Deserialize)]
+struct ChartItemRaw {
+    #[serde(default, deserialize_with = "de_numstring")]
+    level: String,
+    #[serde(default)]
+    md5: Option<String>,
+    #[serde(default)]
+    sha256: Option<String>,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    subtitle: Option<String>,
+    #[serde(default)]
+    artist: Option<String>,
+    #[serde(default)]
+    subartist: Option<String>,
+    #[serde(default)]
+    url: Option<String>,
+    #[serde(default)]
+    url_diff: Option<String>,
+    #[serde(flatten)]
+    extra: BTreeMap<String, Value>,
+}
+
+impl TryFrom<ChartItemRaw> for ChartItem {
+    type Error = String;
+
+    fn try_from(raw: ChartItemRaw) -> Result<Self, Self::Error> {
+        Ok(ChartItem {
+            level: raw.level,
+            md5: raw.md5,
+            sha256: raw.sha256,
+            title: raw.title,
+            subtitle: raw.subtitle,
+            artist: raw.artist,
+            subartist: raw.subartist,
+            url: raw.url,
+            url_diff: raw.url_diff,
+            extra: raw.extra,
+        })
+    }
+}
+
+impl TryFrom<Value> for ChartItem {
+    type Error = String;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        let raw: ChartItemRaw = serde_json::from_value(value).map_err(|e| e.to_string())?;
+        Self::try_from(raw)
+    }
+}
+
+impl<'de> Deserialize<'de> for ChartItem {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        Self::try_from(value).map_err(serde::de::Error::custom)
+    }
+}

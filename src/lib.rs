@@ -88,7 +88,7 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 #[cfg(feature = "serde")]
-use crate::de::{de_numstring, deserialize_course_groups, deserialize_level_order};
+use crate::de::{deserialize_course_groups, deserialize_level_order};
 
 /// Top-level BMS difficulty table data structure.
 ///
@@ -166,7 +166,7 @@ pub struct CourseInfo {
 ///
 /// Describes metadata and resource links for a single BMS file.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ChartItem {
     /// Difficulty level, e.g. "0"
     #[cfg_attr(feature = "serde", serde(default, deserialize_with = "de_numstring"))]

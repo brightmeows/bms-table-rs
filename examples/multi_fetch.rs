@@ -11,10 +11,11 @@
 //! - Error handling and retry mechanics
 #![cfg_attr(not(feature = "reqwest"), allow(unused_imports))]
 
-use anyhow::Result;
 use bms_table::BmsTable;
 #[cfg(feature = "reqwest")]
 use bms_table::fetch::reqwest::Fetcher;
+#[cfg(feature = "reqwest")]
+use bms_table::fetch::Error as FetchError;
 use std::env;
 #[cfg(feature = "reqwest")]
 use tokio::sync::mpsc;
@@ -39,7 +40,7 @@ use url::Url;
 /// If fetching fails for one table, the program prints the error and continues with others.
 #[tokio::main]
 #[cfg(feature = "reqwest")]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), FetchError> {
     // Display program title
     println!("Concurrent difficulty-table fetcher");
     println!("===================");
@@ -159,7 +160,7 @@ struct FetchResult {
     /// Table name
     name: String,
     /// Result of fetching the table
-    table: anyhow::Result<BmsTable>,
+    table: Result<BmsTable, FetchError>,
 }
 
 /// Fetch a single difficulty table

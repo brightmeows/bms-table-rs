@@ -10,7 +10,7 @@
 //!
 //! ```rust,no_run
 //! # #[tokio::main]
-//! # async fn main() -> anyhow::Result<()> {
+//! # async fn main() -> Result<(), bms_table::fetch::Error> {
 //! use bms_table::fetch::reqwest::Fetcher;
 //! let fetcher = Fetcher::lenient()?;
 //! let table = fetcher.fetch_table("https://stellabms.xyz/sl/table.html").await?.table;
@@ -22,7 +22,6 @@
 
 use std::time::Duration;
 
-use anyhow::{Context, Result, anyhow};
 use reqwest::{
     Client, IntoUrl,
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -32,8 +31,9 @@ use serde::de::DeserializeOwned;
 use crate::{
     BmsTable, BmsTableData, BmsTableHeader, BmsTableList,
     fetch::{
-        FetchedTable, FetchedTableList, HeaderQueryContent, TableFetcher,
-        header_query_with_fallback, parse_json_str_with_fallback, BmsTableRaw,
+        Error as FetchError, FetchedTable, FetchedTableList, HeaderQueryContent,
+        TableFetcher, header_query_with_fallback, parse_json_str_with_fallback,
+        BmsTableRaw,
     },
 };
 
@@ -58,7 +58,7 @@ impl Fetcher {
     /// # Errors
     ///
     /// Returns an error if building the underlying HTTP client fails.
-    pub fn lenient() -> Result<Self> {
+    pub fn lenient() -> Result<Self, FetchError> {
         Ok(Self::new(make_lenient_client()?))
     }
 
@@ -73,33 +73,45 @@ impl Fetcher {
     /// # Errors
     ///
     /// Returns an error if fetching or parsing the table fails.
-    pub async fn fetch_table(&self, web_url: impl IntoUrl) -> Result<FetchedTable> {
-        let web_url = web_url.into_url().context("When parsing target url")?;
+    pub async fn fetch_table(&self, web_url: impl IntoUrl) -> Result<FetchedTable, FetchError> {
+        let web_url = web_url
+            .into_url()
+            .map_err(|e| FetchError::Validation {
+                field: "web_url",
+                reason: e.to_string(),
+            })?;
 
         let web_page_text = self.fetch_text(web_url.clone(), "web page").await?;
 
-        let (web_header_query, web_used_text) =
-            header_query_with_fallback::<BmsTableHeader>(&web_page_text)
-                .context("When extracting header query from web page")?;
+        let (web_header_query, web_used_text) = header_query_with_fallback::<BmsTableHeader>(
+            &web_page_text,
+        )
+        .map_err(|e| FetchError::Parse {
+            context: format!("When extracting header query from web page: {e}"),
+        })?;
 
         let (header_json_url, header, header_raw) = match web_header_query {
             HeaderQueryContent::Url(header_url_string) => {
                 let header_json_url = web_url
                     .join(&header_url_string)
-                    .context("When resolving header json url")?;
+                    .map_err(|e| FetchError::Validation {
+                        field: "header_json_url",
+                        reason: e.to_string(),
+                    })?;
 
                 let header_text = self
                     .fetch_text(header_json_url.clone(), "header json")
                     .await?;
 
                 let (header_query2, header_used_text) =
-                    header_query_with_fallback::<BmsTableHeader>(&header_text)
-                        .context("When parsing header json")?;
+                    header_query_with_fallback::<BmsTableHeader>(&header_text).map_err(|e| {
+                        FetchError::Parse {
+                            context: format!("When parsing header json: {e}"),
+                        }
+                    })?;
 
                 let HeaderQueryContent::Value(header) = header_query2 else {
-                    return Err(anyhow!(
-                        "Cycled header found. web_url: {web_url}, header_url: {header_url_string}"
-                    ));
+                    return Err(FetchError::CyclicHeader);
                 };
 
                 (header_json_url, header, header_used_text)
@@ -109,7 +121,10 @@ impl Fetcher {
 
         let data_json_url = header_json_url
             .join(&header.data_url)
-            .context("When resolving data json url")?;
+            .map_err(|e| FetchError::Validation {
+                field: "data_url",
+                reason: e.to_string(),
+            })?;
 
         let (data, data_raw) = self
             .fetch_json_with_fallback::<BmsTableData>(
@@ -135,8 +150,16 @@ impl Fetcher {
     /// # Errors
     ///
     /// Returns an error if fetching or parsing the list fails.
-    pub async fn fetch_table_list(&self, web_url: impl IntoUrl) -> Result<FetchedTableList> {
-        let list_url = web_url.into_url().context("When parsing table list url")?;
+    pub async fn fetch_table_list(
+        &self,
+        web_url: impl IntoUrl,
+    ) -> Result<FetchedTableList, FetchError> {
+        let list_url = web_url
+            .into_url()
+            .map_err(|e| FetchError::Validation {
+                field: "web_url",
+                reason: e.to_string(),
+            })?;
 
         let (list, raw_used) = self
             .fetch_json_with_fallback::<BmsTableList>(list_url, "table list", "table list json")
@@ -152,15 +175,19 @@ impl Fetcher {
     /// # Errors
     ///
     /// Returns an error if the request fails or the body cannot be read as text.
-    async fn fetch_text(&self, url: reqwest::Url, fetch_ctx: &'static str) -> Result<String> {
+    async fn fetch_text(
+        &self,
+        url: reqwest::Url,
+        _fetch_ctx: &'static str,
+    ) -> Result<String, FetchError> {
         self.client
             .get(url)
             .send()
             .await
-            .with_context(|| format!("When fetching {fetch_ctx}"))?
+            .map_err(FetchError::Network)?
             .text()
             .await
-            .with_context(|| format!("When reading {fetch_ctx} body"))
+            .map_err(FetchError::Network)
     }
 
     /// Fetch a URL and parse JSON with a control-character cleaning fallback.
@@ -173,19 +200,21 @@ impl Fetcher {
         url: reqwest::Url,
         fetch_ctx: &'static str,
         parse_ctx: &'static str,
-    ) -> Result<(T, String)> {
+    ) -> Result<(T, String), FetchError> {
         let text = self.fetch_text(url, fetch_ctx).await?;
         parse_json_str_with_fallback::<T>(&text)
-            .with_context(|| format!("When parsing {parse_ctx}"))
+            .map_err(|e| FetchError::Parse {
+                context: format!("When parsing {parse_ctx}: {e}"),
+            })
     }
 }
 
 impl TableFetcher for Fetcher {
-    async fn fetch_table(&self, web_url: url::Url) -> Result<FetchedTable> {
+    async fn fetch_table(&self, web_url: url::Url) -> Result<FetchedTable, FetchError> {
         Fetcher::fetch_table(self, web_url).await
     }
 
-    async fn fetch_table_list(&self, web_url: url::Url) -> Result<FetchedTableList> {
+    async fn fetch_table_list(&self, web_url: url::Url) -> Result<FetchedTableList, FetchError> {
         Fetcher::fetch_table_list(self, web_url).await
     }
 }
@@ -202,7 +231,7 @@ impl TableFetcher for Fetcher {
 /// # Errors
 ///
 /// Returns an error when building the HTTP client fails.
-fn make_lenient_client() -> Result<Client> {
+fn make_lenient_client() -> Result<Client, FetchError> {
     let mut headers = HeaderMap::new();
     headers.insert(
         HeaderName::from_static("accept"),
@@ -236,6 +265,6 @@ fn make_lenient_client() -> Result<Client> {
         .danger_accept_invalid_certs(true)
         .danger_accept_invalid_hostnames(true)
         .build()
-        .context("When building client")?;
+        .map_err(FetchError::Network)?;
     Ok(client)
 }

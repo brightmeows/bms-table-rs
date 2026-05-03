@@ -27,6 +27,9 @@
 #[cfg(feature = "serde")]
 use thiserror::Error;
 
+#[allow(clippy::module_name_repetitions)]
+pub use Error as FetchError;
+
 /// Fetch module error types.
 #[derive(Debug, Error)]
 pub enum Error {
@@ -107,7 +110,7 @@ pub trait TableFetcher {
     fn fetch_table(
         &self,
         web_url: url::Url,
-    ) -> impl Future<Output = Result<FetchedTable>> + Send + '_;
+    ) -> impl Future<Output = Result<FetchedTable, FetchError>> + Send + '_;
 
     /// Fetch a list of BMS difficulty tables, including the raw JSON string.
     ///
@@ -117,7 +120,7 @@ pub trait TableFetcher {
     fn fetch_table_list(
         &self,
         web_url: url::Url,
-    ) -> impl Future<Output = Result<FetchedTableList>> + Send + '_;
+    ) -> impl Future<Output = Result<FetchedTableList, FetchError>> + Send + '_;
 }
 
 /// Return type of [`get_web_header_json_value`].

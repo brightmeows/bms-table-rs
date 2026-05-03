@@ -1,21 +1,25 @@
 //! Example: fetch a single BMS difficulty table and print summary
 #![cfg_attr(not(feature = "reqwest"), allow(unused_imports))]
 
-use anyhow::Result;
 use std::env;
 
 #[cfg(feature = "reqwest")]
 use bms_table::fetch::reqwest::Fetcher;
 #[cfg(feature = "reqwest")]
+use bms_table::fetch::Error as FetchError;
+#[cfg(feature = "reqwest")]
 use url::Url;
 
 #[cfg(feature = "reqwest")]
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), FetchError> {
     let url = env::args()
         .nth(1)
         .unwrap_or_else(|| "https://stellabms.xyz/sl/table.html".to_string());
-    let url = Url::parse(&url)?;
+    let url = Url::parse(&url).map_err(|e| FetchError::Validation {
+        field: "url",
+        reason: e.to_string(),
+    })?;
 
     let fetcher = Fetcher::lenient()?;
 
@@ -32,19 +36,13 @@ async fn main() -> Result<()> {
         }
         Err(e) => {
             eprintln!("Fetch failed for: {}", url);
-            eprintln!("Message: {}", e);
-            eprintln!("Causes:");
-            for (i, cause) in e.chain().enumerate() {
-                eprintln!("  [{}] {}", i, cause);
-            }
-            match std::env::var("RUST_BACKTRACE").as_deref() {
-                Ok("1") => {
-                    eprintln!("Backtrace:");
-                    eprintln!("{:?}", e.backtrace());
-                }
-                _ => {
-                    eprintln!("Hint: set RUST_BACKTRACE=1 to print backtrace.");
-                }
+            eprintln!("Error: {}", e);
+            let mut source = std::error::Error::source(&e);
+            let mut i = 0;
+            while let Some(s) = source {
+                eprintln!("  [{}] {}", i, s);
+                source = std::error::Error::source(s);
+                i += 1;
             }
         }
     }
