@@ -24,6 +24,53 @@
 //! ```
 #![cfg(feature = "scraper")]
 
+#[cfg(feature = "serde")]
+use thiserror::Error;
+
+/// Fetch module error types.
+#[derive(Debug, Error)]
+pub enum Error {
+    /// Network error during fetch.
+    #[cfg(feature = "reqwest")]
+    #[error("network error: {0}")]
+    Network(#[from] ::reqwest::Error),
+    /// JSON parse error with context.
+    #[error("parse error: {context}")]
+    Parse {
+        /// Context description.
+        context: String,
+    },
+    /// Field validation error.
+    #[error("validation error: {field} - {reason}")]
+    Validation {
+        /// Field name.
+        field: &'static str,
+        /// Reason for validation failure.
+        reason: String,
+    },
+    /// Missing required field.
+    #[error("missing required field: {0}")]
+    MissingField(&'static str),
+    /// Cyclic header resolution detected.
+    #[error("cycle detected in header resolution")]
+    CyclicHeader,
+}
+
+/// Complete set of original JSON strings.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct BmsTableRaw {
+    /// Full URL of the header JSON
+    #[cfg(feature = "scraper")]
+    pub header_json_url: url::Url,
+    /// Raw header JSON string
+    pub header_raw: String,
+    /// Full URL of the chart data JSON
+    #[cfg(feature = "scraper")]
+    pub data_json_url: url::Url,
+    /// Raw chart data JSON string
+    pub data_raw: String,
+}
+
 pub mod reqwest;
 
 use std::future::Future;
@@ -32,7 +79,7 @@ use anyhow::{Context, Result, anyhow};
 use scraper::{ElementRef, Html, Selector};
 use serde::de::DeserializeOwned;
 
-use crate::{BmsTable, BmsTableInfo, BmsTableRaw};
+use crate::{BmsTable, BmsTableInfo};
 
 /// Result of fetching a table with its raw JSON strings.
 pub struct FetchedTable {

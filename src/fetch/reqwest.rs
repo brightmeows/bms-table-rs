@@ -30,10 +30,10 @@ use reqwest::{
 use serde::de::DeserializeOwned;
 
 use crate::{
-    BmsTable, BmsTableData, BmsTableHeader, BmsTableList, BmsTableRaw,
+    BmsTable, BmsTableData, BmsTableHeader, BmsTableList,
     fetch::{
         FetchedTable, FetchedTableList, HeaderQueryContent, TableFetcher,
-        header_query_with_fallback, parse_json_str_with_fallback,
+        header_query_with_fallback, parse_json_str_with_fallback, BmsTableRaw,
     },
 };
 

@@ -207,21 +207,6 @@ pub struct Trophy {
     pub scorerate: f64,
 }
 
-/// Complete set of original JSON strings.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct BmsTableRaw {
-    /// Full URL of the header JSON
-    #[cfg(feature = "scraper")]
-    pub header_json_url: url::Url,
-    /// Raw header JSON string
-    pub header_raw: String,
-    /// Full URL of the chart data JSON
-    #[cfg(feature = "scraper")]
-    pub data_json_url: url::Url,
-    /// Raw chart data JSON string
-    pub data_raw: String,
-}
-
 /// BMS difficulty table list item.
 ///
 /// Represents the basic information of a difficulty table in a list. Only `name`, `symbol`, and `url` are required; other fields such as `tag1`, `tag2`, `comment`, `date`, `state`, and `tag_order` are collected into `extra`.
