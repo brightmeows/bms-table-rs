@@ -1,9 +1,12 @@
 # BMS Difficulty Table Fetching and Parsing Library
 
-[<img alt="github" src="https://img.shields.io/badge/github-MiyakoMeow/bms_table_rs-8da0cb?logo=github" height="20">](https://github.com/MiyakoMeow/bms-table-rs)
-[<img alt="crates.io" src="https://img.shields.io/crates/v/bms-table.svg?logo=rust" height="20">](https://crates.io/crates/bms-table)
-[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-bms_table-66c2a5?logo=docs.rs" height="20">](https://docs.rs/bms-table)
-[<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/MiyakoMeow/bms-table-rs/rust.yml?branch=main" height="20">](https://github.com/MiyakoMeow/bms-table-rs/actions?query=branch%3main)
+[![Crates.io](https://img.shields.io/crates/v/bms-table)](https://crates.io/crates/bms-table)
+[![Documentation](https://docs.rs/bms-table/badge.svg)](https://docs.rs/bms-table)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![CI](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/rust.yml)
+[![codecov](https://codecov.io/gh/MiyakoMeow/bms-table-rs/graph/badge.svg)](https://codecov.io/gh/MiyakoMeow/bms-table-rs)
+[![Cargo Deny](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/cargo-deny.yml/badge.svg)](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/cargo-deny.yml)
+[![Downloads](https://img.shields.io/crates/d/bms-table)](https://crates.io/crates/bms-table)
 
 A Rust library to fetch and parse BMS difficulty tables. It can build a complete data structure from a web page or a header JSON, covering the header, courses, trophies and chart items, and it provides APIs to fetch lists of tables.
 
