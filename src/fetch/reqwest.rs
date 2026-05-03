@@ -31,9 +31,8 @@ use serde::de::DeserializeOwned;
 use crate::{
     BmsTable, BmsTableData, BmsTableHeader, BmsTableList,
     fetch::{
-        Error as FetchError, FetchedTable, FetchedTableList, HeaderQueryContent,
+        BmsTableRaw, Error as FetchError, FetchedTable, FetchedTableList, HeaderQueryContent,
         TableFetcher, header_query_with_fallback, parse_json_str_with_fallback,
-        BmsTableRaw,
     },
 };
 
@@ -74,30 +73,29 @@ impl Fetcher {
     ///
     /// Returns an error if fetching or parsing the table fails.
     pub async fn fetch_table(&self, web_url: impl IntoUrl) -> Result<FetchedTable, FetchError> {
-        let web_url = web_url
-            .into_url()
-            .map_err(|e| FetchError::Validation {
-                field: "web_url",
-                reason: e.to_string(),
-            })?;
+        let web_url = web_url.into_url().map_err(|e| FetchError::Validation {
+            field: "web_url",
+            reason: e.to_string(),
+        })?;
 
         let web_page_text = self.fetch_text(web_url.clone(), "web page").await?;
 
-        let (web_header_query, web_used_text) = header_query_with_fallback::<BmsTableHeader>(
-            &web_page_text,
-        )
-        .map_err(|e| FetchError::Parse {
-            context: format!("When extracting header query from web page: {e}"),
-        })?;
+        let (web_header_query, web_used_text) =
+            header_query_with_fallback::<BmsTableHeader>(&web_page_text).map_err(|e| {
+                FetchError::Parse {
+                    context: format!("When extracting header query from web page: {e}"),
+                }
+            })?;
 
         let (header_json_url, header, header_raw) = match web_header_query {
             HeaderQueryContent::Url(header_url_string) => {
-                let header_json_url = web_url
-                    .join(&header_url_string)
-                    .map_err(|e| FetchError::Validation {
-                        field: "header_json_url",
-                        reason: e.to_string(),
-                    })?;
+                let header_json_url =
+                    web_url
+                        .join(&header_url_string)
+                        .map_err(|e| FetchError::Validation {
+                            field: "header_json_url",
+                            reason: e.to_string(),
+                        })?;
 
                 let header_text = self
                     .fetch_text(header_json_url.clone(), "header json")
@@ -119,12 +117,13 @@ impl Fetcher {
             HeaderQueryContent::Value(header) => (web_url, header, web_used_text),
         };
 
-        let data_json_url = header_json_url
-            .join(&header.data_url)
-            .map_err(|e| FetchError::Validation {
-                field: "data_url",
-                reason: e.to_string(),
-            })?;
+        let data_json_url =
+            header_json_url
+                .join(&header.data_url)
+                .map_err(|e| FetchError::Validation {
+                    field: "data_url",
+                    reason: e.to_string(),
+                })?;
 
         let (data, data_raw) = self
             .fetch_json_with_fallback::<BmsTableData>(
@@ -154,12 +153,10 @@ impl Fetcher {
         &self,
         web_url: impl IntoUrl,
     ) -> Result<FetchedTableList, FetchError> {
-        let list_url = web_url
-            .into_url()
-            .map_err(|e| FetchError::Validation {
-                field: "web_url",
-                reason: e.to_string(),
-            })?;
+        let list_url = web_url.into_url().map_err(|e| FetchError::Validation {
+            field: "web_url",
+            reason: e.to_string(),
+        })?;
 
         let (list, raw_used) = self
             .fetch_json_with_fallback::<BmsTableList>(list_url, "table list", "table list json")
@@ -202,10 +199,9 @@ impl Fetcher {
         parse_ctx: &'static str,
     ) -> Result<(T, String), FetchError> {
         let text = self.fetch_text(url, fetch_ctx).await?;
-        parse_json_str_with_fallback::<T>(&text)
-            .map_err(|e| FetchError::Parse {
-                context: format!("When parsing {parse_ctx}: {e}"),
-            })
+        parse_json_str_with_fallback::<T>(&text).map_err(|e| FetchError::Parse {
+            context: format!("When parsing {parse_ctx}: {e}"),
+        })
     }
 }
 

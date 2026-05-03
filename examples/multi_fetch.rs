@@ -13,9 +13,9 @@
 
 use bms_table::BmsTable;
 #[cfg(feature = "reqwest")]
-use bms_table::fetch::reqwest::Fetcher;
-#[cfg(feature = "reqwest")]
 use bms_table::fetch::Error as FetchError;
+#[cfg(feature = "reqwest")]
+use bms_table::fetch::reqwest::Fetcher;
 use std::env;
 #[cfg(feature = "reqwest")]
 use tokio::sync::mpsc;
