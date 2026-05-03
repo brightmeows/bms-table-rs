@@ -44,7 +44,6 @@ jobs:
       - name: Cache cargo build
         uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
           workspaces: |
             . -> target
 
@@ -63,7 +62,6 @@ jobs:
       - name: Cache cargo build
         uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
           workspaces: |
             . -> target
 
