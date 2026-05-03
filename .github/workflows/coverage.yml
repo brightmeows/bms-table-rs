@@ -35,13 +35,13 @@ jobs:
       - uses: actions/checkout@v6
       - name: Setup rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-cov
       - name: Cache cargo build
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             . -> target
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
       - name: Generate coverage
         run: cargo llvm-cov --lcov --output-path lcov.info
       - name: Upload to codecov
