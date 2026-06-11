@@ -1,5 +1,4 @@
 //! Unit tests for serialization behavior of header, chart items, and table data
-#![cfg(feature = "serde")]
 
 use bms_table::{BmsTableData, BmsTableHeader, ChartItem};
 use std::collections::BTreeMap;

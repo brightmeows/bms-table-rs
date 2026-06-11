@@ -9,16 +9,15 @@
 //! - Emit an event when each table finishes
 //! - Display fetch progress and results
 //! - Error handling and retry mechanics
-#![cfg_attr(not(feature = "reqwest"), allow(unused_imports))]
+
+#[path = "util/shared.rs"]
+mod shared;
 
 use anyhow::Result;
 use bms_table::BmsTable;
-#[cfg(feature = "reqwest")]
-use bms_table::fetch::reqwest::Fetcher;
+use shared::Fetcher;
 use std::env;
-#[cfg(feature = "reqwest")]
 use tokio::sync::mpsc;
-#[cfg(feature = "reqwest")]
 use url::Url;
 
 /// Main function
@@ -38,7 +37,6 @@ use url::Url;
 ///
 /// If fetching fails for one table, the program prints the error and continues with others.
 #[tokio::main]
-#[cfg(feature = "reqwest")]
 async fn main() -> Result<()> {
     // Display program title
     println!("Concurrent difficulty-table fetcher");
@@ -108,7 +106,6 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "reqwest")]
 /// Get the list of URLs to use
 fn table_urls() -> Vec<Url> {
     // Read command-line arguments
@@ -154,7 +151,6 @@ fn table_urls() -> Vec<Url> {
 
 /// Fetch result for a difficulty table
 #[derive(Debug)]
-#[cfg(feature = "reqwest")]
 struct FetchResult {
     /// Table name
     name: String,
@@ -163,7 +159,6 @@ struct FetchResult {
 }
 
 /// Fetch a single difficulty table
-#[cfg(feature = "reqwest")]
 async fn fetch_single_table(fetcher: &Fetcher, url: &Url) -> FetchResult {
     match fetcher.fetch_table(url.clone()).await {
         Ok(fetched) => {
@@ -179,6 +174,3 @@ async fn fetch_single_table(fetcher: &Fetcher, url: &Url) -> FetchResult {
         },
     }
 }
-
-#[cfg(not(feature = "reqwest"))]
-fn main() {}

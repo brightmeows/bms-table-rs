@@ -1,5 +1,4 @@
 //! Unit tests for serialization of `BmsTableInfo` and `BmsTableList`
-#![cfg(feature = "scraper")]
 use std::collections::BTreeMap;
 
 use bms_table::{BmsTableInfo, BmsTableList};

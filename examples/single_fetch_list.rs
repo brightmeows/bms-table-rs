@@ -1,19 +1,14 @@
-//! Single-run example for fetching the table list: uses `fetch_table_list_full`
+//! Single-run example for fetching the table list
 //!
 //! How to run:
-//! - With the default `reqwest` feature enabled, run:
-//!   `cargo run --example single_fetch_list`
-//! - If default features are disabled, explicitly enable:
-//!   `cargo run --example single_fetch_list --features reqwest`
+//!   cargo run --example single_fetch_list
 
-#![cfg_attr(not(feature = "reqwest"), allow(unused_imports))]
+#[path = "util/shared.rs"]
+mod shared;
 
-#[cfg(feature = "reqwest")]
-use bms_table::fetch::reqwest::Fetcher;
-#[cfg(feature = "reqwest")]
+use shared::Fetcher;
 use url::Url;
 
-#[cfg(feature = "reqwest")]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let url = Url::parse(
@@ -32,9 +27,4 @@ async fn main() -> anyhow::Result<()> {
 
     println!("Raw JSON length: {}", raw.len());
     Ok(())
-}
-
-#[cfg(not(feature = "reqwest"))]
-fn main() {
-    eprintln!("This example requires the `reqwest` feature to be enabled.");
 }

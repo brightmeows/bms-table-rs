@@ -1,19 +1,12 @@
 //! Unit tests for HTML parsing and bmstable URL extraction
 //!
-//! Verifies reading the `content` from `<meta name="bmstable">` and joining relative URLs.
-#![cfg(feature = "scraper")]
+//! Verifies reading the `content` from `<meta name="bmstable">`.
 
-use bms_table::fetch::{
-    HeaderQueryContent, get_web_header_json_value, try_extract_bmstable_from_html,
-};
-use url::Url;
-
-// Tests for HTML parsing and URL behavior
+use bms_table::BmsTableHtml;
 
 #[test]
-fn test_parser_creation() {
-    // Test extracting bmstable URL from HTML content
-    let html_content = r#"
+fn test_extract_bmstable_from_meta() {
+    let html = r#"
     <!DOCTYPE html>
     <html>
     <head>
@@ -25,14 +18,31 @@ fn test_parser_creation() {
     </html>
     "#;
 
-    let result = try_extract_bmstable_from_html(html_content);
+    let result = BmsTableHtml::try_extract_bmstable_from_html(html);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "header.json");
 }
 
 #[test]
-fn test_parser_no_bmstable() {
-    let html_content = r#"
+fn test_extract_bmstable_from_meta_property() {
+    let html = r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta property="bmstable" content="https://example.com/header.json">
+    </head>
+    <body></body>
+    </html>
+    "#;
+
+    let result = BmsTableHtml::try_extract_bmstable_from_html(html);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), "https://example.com/header.json");
+}
+
+#[test]
+fn test_no_bmstable_returns_error() {
+    let html = r#"
     <!DOCTYPE html>
     <html>
     <head>
@@ -44,31 +54,6 @@ fn test_parser_no_bmstable() {
     </html>
     "#;
 
-    let result = try_extract_bmstable_from_html(html_content);
+    let result = BmsTableHtml::try_extract_bmstable_from_html(html);
     assert!(result.is_err());
-}
-
-#[test]
-fn test_url_parsing() {
-    let base_url = "https://example.com/table.html";
-    let bmstable_url = "header.json";
-
-    let base_url_obj = Url::parse(base_url).unwrap();
-    let header_url = base_url_obj.join(bmstable_url).unwrap();
-
-    assert_eq!(header_url.as_str(), "https://example.com/header.json");
-}
-
-#[test]
-fn test_get_web_header_json_value_parses_json_with_control_chars() {
-    let input = "\u{0000}{\"data_url\":\"charts.json\"}\u{000C}";
-    match get_web_header_json_value::<serde_json::Value>(input).unwrap() {
-        HeaderQueryContent::Value(v) => {
-            assert_eq!(
-                v.get("data_url").and_then(|x| x.as_str()),
-                Some("charts.json")
-            );
-        }
-        _ => panic!("should parse as JSON"),
-    }
 }

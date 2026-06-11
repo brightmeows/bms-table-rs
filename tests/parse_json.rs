@@ -1,7 +1,6 @@
 //! Unit tests for JSON parsing and data structure deserialization
 //!
 //! Covers common and edge inputs for headers, courses, and chart data to ensure deserialization and field compatibility behave correctly.
-#![cfg(feature = "serde")]
 
 use bms_table::{BmsTable, BmsTableData, BmsTableHeader, CourseInfo};
 use serde_json::json;
