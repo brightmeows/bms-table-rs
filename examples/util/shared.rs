@@ -1,24 +1,7 @@
-//! Network fetching module based on `reqwest`
+//! Shared fetcher implementation for examples.
 //!
-//! Provides an all-in-one ability to fetch and parse BMS difficulty tables from a web page or a header JSON source:
-//! - Fetch the page and extract the bmstable header URL from HTML (if present);
-//! - Download and parse the header JSON;
-//! - Download and parse chart data according to `data_url` in the header;
-//! - Return a parsed `BmsTable` plus the raw JSON strings used for parsing.
-//!
-//! # Example
-//!
-//! ```rust,no_run
-//! # #[tokio::main]
-//! # async fn main() -> anyhow::Result<()> {
-//! use bms_table::fetch::reqwest::Fetcher;
-//! let fetcher = Fetcher::lenient()?;
-//! let table = fetcher.fetch_table("https://stellabms.xyz/sl/table.html").await?.table;
-//! assert!(!table.data.charts.is_empty());
-//! # Ok(())
-//! # }
-//! ```
-#![cfg(feature = "reqwest")]
+//! Moved from the library's `fetch::reqwest` module. Each example includes this
+//! file via `#[path = "shared.rs"] mod shared;` and uses `shared::Fetcher`.
 
 use std::time::Duration;
 
@@ -28,14 +11,93 @@ use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use serde::de::DeserializeOwned;
+use url::Url;
 
-use crate::{
-    BmsTable, BmsTableData, BmsTableHeader, BmsTableList, BmsTableRaw,
-    fetch::{
-        FetchedTable, FetchedTableList, HeaderQueryContent, TableFetcher,
-        header_query_with_fallback, parse_json_str_with_fallback,
-    },
-};
+use bms_table::{BmsTable, BmsTableData, BmsTableHeader, BmsTableHtml, BmsTableList};
+
+/// Remove non-printable control characters from text.
+fn replace_control_chars(s: &str) -> String {
+    s.chars().filter(|ch: &char| !ch.is_control()).collect()
+}
+
+/// Parse JSON from a raw string with a cleaning fallback.
+fn parse_json_str_with_fallback<T: DeserializeOwned>(raw: &str) -> Result<(T, String)> {
+    match serde_json::from_str::<T>(raw) {
+        Ok(v) => Ok((v, raw.to_string())),
+        Err(_) => {
+            let cleaned = replace_control_chars(raw);
+            let v = serde_json::from_str::<T>(&cleaned)?;
+            Ok((v, cleaned))
+        }
+    }
+}
+
+/// Return type for the local `get_web_header_json_value`.
+enum HeaderQueryContent<T> {
+    /// Extracted header JSON URL.
+    Url(String),
+    /// Parsed header JSON content.
+    Value(T),
+}
+
+/// Parse a response string into the header JSON or its URL.
+///
+/// Tries JSON first; if that fails, falls back to HTML extraction.
+fn get_web_header_json_value<T: DeserializeOwned>(
+    response_str: &str,
+) -> Result<HeaderQueryContent<T>> {
+    let cleaned = replace_control_chars(response_str);
+    match serde_json::from_str::<T>(&cleaned) {
+        Ok(header_json) => Ok(HeaderQueryContent::Value(header_json)),
+        Err(_) => {
+            let bmstable_url = BmsTableHtml::try_extract_bmstable_from_html(response_str)
+                .context("When extracting bmstable url")?;
+            Ok(HeaderQueryContent::Url(bmstable_url))
+        }
+    }
+}
+
+/// Extract the header content with a fallback cleaning step.
+fn header_query_with_fallback<T: DeserializeOwned>(
+    raw: &str,
+) -> Result<(HeaderQueryContent<T>, String)> {
+    match get_web_header_json_value::<T>(raw) {
+        Ok(v) => Ok((v, raw.to_string())),
+        Err(_) => {
+            let cleaned = replace_control_chars(raw);
+            let v = get_web_header_json_value::<T>(&cleaned)?;
+            Ok((v, cleaned))
+        }
+    }
+}
+
+/// Complete set of original JSON strings with resolved URLs.
+pub struct BmsTableRaw {
+    /// Full URL of the header JSON.
+    pub header_json_url: Url,
+    /// Raw header JSON string.
+    pub header_raw: String,
+    /// Full URL of the chart data JSON.
+    pub data_json_url: Url,
+    /// Raw chart data JSON string.
+    pub data_raw: String,
+}
+
+/// Result of fetching a table with its raw JSON strings.
+pub struct FetchedTable {
+    /// Parsed table.
+    pub table: BmsTable,
+    /// Raw JSON strings and resolved URLs.
+    pub raw: BmsTableRaw,
+}
+
+/// Result of fetching a table list with its raw JSON string.
+pub struct FetchedTableList {
+    /// Parsed list entries.
+    pub tables: Vec<bms_table::BmsTableInfo>,
+    /// Raw JSON string actually used for parsing.
+    pub raw_json: String,
+}
 
 /// Fetcher wrapper around a reusable [`reqwest::Client`].
 ///
@@ -152,7 +214,7 @@ impl Fetcher {
     /// # Errors
     ///
     /// Returns an error if the request fails or the body cannot be read as text.
-    async fn fetch_text(&self, url: reqwest::Url, fetch_ctx: &'static str) -> Result<String> {
+    async fn fetch_text(&self, url: Url, fetch_ctx: &'static str) -> Result<String> {
         self.client
             .get(url)
             .send()
@@ -170,23 +232,13 @@ impl Fetcher {
     /// Returns an error if fetching fails, or the response cannot be parsed as JSON.
     async fn fetch_json_with_fallback<T: DeserializeOwned>(
         &self,
-        url: reqwest::Url,
+        url: Url,
         fetch_ctx: &'static str,
         parse_ctx: &'static str,
     ) -> Result<(T, String)> {
         let text = self.fetch_text(url, fetch_ctx).await?;
         parse_json_str_with_fallback::<T>(&text)
             .with_context(|| format!("When parsing {parse_ctx}"))
-    }
-}
-
-impl TableFetcher for Fetcher {
-    async fn fetch_table(&self, web_url: url::Url) -> Result<FetchedTable> {
-        Fetcher::fetch_table(self, web_url).await
-    }
-
-    async fn fetch_table_list(&self, web_url: url::Url) -> Result<FetchedTableList> {
-        Fetcher::fetch_table_list(self, web_url).await
     }
 }
 

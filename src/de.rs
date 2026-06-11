@@ -1,7 +1,6 @@
 //! Deserialization implementation module
 //!
 //! Centralizes all `Deserialize` implementations and helper raw types here, keeping `lib.rs` focused on type definitions.
-#![cfg(feature = "serde")]
 
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;

@@ -1,15 +1,13 @@
 //! Example: fetch a single BMS difficulty table and print summary
-#![cfg_attr(not(feature = "reqwest"), allow(unused_imports))]
+
+#[path = "util/shared.rs"]
+mod shared;
 
 use anyhow::Result;
+use shared::Fetcher;
 use std::env;
-
-#[cfg(feature = "reqwest")]
-use bms_table::fetch::reqwest::Fetcher;
-#[cfg(feature = "reqwest")]
 use url::Url;
 
-#[cfg(feature = "reqwest")]
 #[tokio::main]
 async fn main() -> Result<()> {
     let url = env::args()
@@ -50,9 +48,4 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(not(feature = "reqwest"))]
-fn main() {
-    eprintln!("This example requires the `reqwest` feature to be enabled.");
 }

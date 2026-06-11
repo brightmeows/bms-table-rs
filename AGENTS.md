@@ -21,7 +21,7 @@ cargo deny check
 
 | Crate | Directory | Summary |
 |---|---|---|
-| `bms-table` | `./src` | BMS difficulty table parser & fetcher |
+| `bms-table` | `./src` | BMS difficulty table parser |
 
 All dependencies defined in `[dependencies]` in root `Cargo.toml`.
 
@@ -33,6 +33,14 @@ Conventional Commits matching `release-plz.toml` changelog groups:
 - Title/body in English.
 - Use `()` for scope, e.g. `feat(bms-parser):`.
 - Use `!` for BREAKING CHANGE, e.g. `feat!:` or `feat(scope)!:`.
+
+## API convention
+
+Expose public operations through associated functions on a relevant type
+(typically a domain struct or a zero-sized `*Builder`). Avoid free functions
+as public API — namespacing on a type is mandatory for consistency.
+Prefer a `*Builder` only when the API has configurable parameters; a
+bare struct with methods is sufficient when there is no state to configure.
 
 ## Comment style
 

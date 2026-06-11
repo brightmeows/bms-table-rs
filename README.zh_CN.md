@@ -1,26 +1,18 @@
-# BMS 难度表数据获取与解析库
+# BMS 难度表解析库
 
 [<img alt="github" src="https://img.shields.io/badge/github-MiyakoMeow/bms_table_rs-8da0cb?logo=github" height="20">](https://github.com/MiyakoMeow/bms-table-rs)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/bms-table.svg?logo=rust" height="20">](https://crates.io/crates/bms-table)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-bms_table-66c2a5?logo=docs.rs" height="20">](https://docs.rs/bms-table)
 [<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/MiyakoMeow/bms-table-rs/rust.yml?branch=main" height="20">](https://github.com/MiyakoMeow/bms-table-rs/actions?query=branch%3main)
 
-使用 Rust 实现的 BMS 难度表获取与解析库。支持从网页或头部 JSON 构建完整数据结构，覆盖表头、课程、奖杯与谱面条目，并提供难度表列表获取能力。
+使用 Rust 实现的 BMS 难度表解析库。支持从表头 JSON 和谱面数据 JSON 构建完整数据结构，覆盖表头、段位、奖杯与谱面条目。
 
 ## 功能特性
 
-- 从 HTML `<meta name="bmstable">` 提取头部 JSON 地址（启用 `scraper`）。
+- 从 HTML `<meta name="bmstable">` 提取表头 JSON 地址。
 - 解析表头 JSON 为 `BmsTableHeader`，未识别字段保留到 `extra`。
 - 解析谱面数据为 `BmsTableData`，支持 `ChartItem` 数组。
-- 将段位中的 `md5`/`sha256` 列表自动转换为 `ChartItem`，缺失 `level` 时补为 "0"。
-- 一站式网络获取 API（启用 `reqwest`，隐式启用 `scraper`）。
-- 获取难度表列表。
-
-## 特性开关
-
-- `serde`：类型的序列化/反序列化支持（默认启用）。
-- `scraper`：HTML 解析与 bmstable 头部地址提取（默认启用；`reqwest` 隐式启用）。
-- `reqwest`：网络获取实现（默认启用；需要 `tokio` 运行时）。
+- 将段位中的 `md5`/`sha256` 列表自动转换为 `ChartItem`，缺失 `level` 时补为 `"0"`。
 
 ## API 概览
 
@@ -28,18 +20,16 @@
 - `BmsTableHeader`：表头元数据；未识别字段保留到 `extra`。
 - `BmsTableData`：谱面数据数组。
 - `CourseInfo`：段位信息，支持 `md5`/`sha256` 列表自动转换为谱面。
-- `ChartItem`：谱面条目；空字符串在反序列化时自动转换为 `None`。
+- `ChartItem`：谱面条目；空字符串在反序列化时保留为 `Some("")`。
 - `Trophy`：奖杯要求（最大 miss 率、最低得分率）。
-- `fetch::reqwest::Fetcher`：一站式网络抓取器，封装可复用的 `reqwest::Client`。
-- `Fetcher::fetch_table(url)`：从网页或头部 JSON 源拉取并解析完整表。
-- `Fetcher::fetch_table_with_raw(url)`：同时返回原始头部与数据 JSON 文本。
-- `Fetcher::fetch_table_list(url)`：获取难度表列表。
-- `Fetcher::fetch_table_list_with_raw(url)`：返回列表项与原始 JSON 文本。
-- `fetch::get_web_header_json_value(str)`：将响应字符串解析为头部 JSON 或其 URL（`HeaderQueryContent`）。
-- `fetch::extract_bmstable_url(html)`：从 HTML 中提取 bmstable 头部地址。
+- `BmsTableInfo` / `BmsTableList`：难度表列表 JSON 的数据类型。
+- `BmsTableHtml`：HTML 解析操作，详见 `try_extract_bmstable_from_html`。
 
 ## 示例程序
 
+`examples/` 目录下包含基于 HTTP 的网络获取示例（使用 `reqwest` 作为 dev-dependency）：
+
+- `examples/single_fetch.rs`：单个难度表获取并打印概要。
 - `examples/single_fetch_list.rs`：单次抓取难度表列表并打印前若干条目。
 - `examples/multi_fetch.rs`：并发抓取多个难度表并输出进度与结果。
 
