@@ -1,3 +1,4 @@
+[workspace]
 # Enable semver checks for early detection of breaking API changes.
 # (On 0.x, cargo-semver-checks flags any public API change as
 # semver-incompatible, which is expected.)
