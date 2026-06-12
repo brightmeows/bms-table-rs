@@ -70,7 +70,6 @@ feature-depth = 1
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    { id = "RUSTSEC-2025-0057", reason = "Transitive via scraper/selectors -> fxhash; upstream migration to rustc-hash pending; no safe upgrade available currently." },
     #"RUSTSEC-0000-0000",
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
@@ -92,26 +91,22 @@ ignore = [
 allow = [
     "MIT",
     "Apache-2.0",
-    "BSD-3-Clause",
     "ISC",
     "MPL-2.0",
     "Unlicense",
     "Unicode-3.0",
-    "OpenSSL",
-    "CDLA-Permissive-2.0",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
 # canonical license text of a valid SPDX license file.
 # [possible values: any between 0.0 and 1.0].
 confidence-threshold = 0.8
-# Allow 1 or more licenses on a per-crate basis, so that particular licenses
-# aren't accepted for every possible crate as with the normal allow list
-exceptions = [
-    # Each entry is the crate and version constraint, and its specific allow
-    # list
-    #{ allow = ["Zlib"], crate = "adler32" },
-]
+
+# License clarifications: trust the SPDX identifier from Cargo.toml
+# for crates where the license text cannot be matched at the threshold.
+# Note: BSD-3-Clause and CDLA-Permissive-2.0 are not in the allow list
+# because they only appear in dev-dependency paths (reqwest -> rustls -> subtle/webpki-root-certs)
+# and cargo-deny cannot match their license text at 0.8 confidence threshold.
 
 # Some crates don't have (easily) machine readable licensing information,
 # adding a clarification entry for it allows you to manually specify the
