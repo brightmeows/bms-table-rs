@@ -1,9 +1,9 @@
 # BMS 难度表解析库
 
-[<img alt="github" src="https://img.shields.io/badge/github-MiyakoMeow/bms_table_rs-8da0cb?logo=github" height="20">](https://github.com/MiyakoMeow/bms-table-rs)
+[<img alt="codeberg" src="https://img.shields.io/badge/Codeberg-brightmeows/bms--table--rs-218b7e?logo=codeberg&logoColor=white" height="20">](https://codeberg.org/brightmeows/bms-table-rs)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/bms-table.svg?logo=rust" height="20">](https://crates.io/crates/bms-table)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-bms_table-66c2a5?logo=docs.rs" height="20">](https://docs.rs/bms-table)
-[<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/MiyakoMeow/bms-table-rs/rust.yml?branch=main" height="20">](https://github.com/MiyakoMeow/bms-table-rs/actions?query=branch%3main)
+[<img alt="downloads" src="https://img.shields.io/crates/d/bms-table" height="20">](https://crates.io/crates/bms-table)
 
 使用 Rust 实现的 BMS 难度表解析库。支持从表头 JSON 和谱面数据 JSON 构建完整数据结构，覆盖表头、段位、奖杯与谱面条目。
 
@@ -36,7 +36,7 @@
 ## 文档与链接
 
 - `docs.rs`：https://docs.rs/bms-table
-- 仓库：https://github.com/MiyakoMeow/bms-table-rs
+- 仓库：https://codeberg.org/brightmeows/bms-table-rs
 
 ## 许可
 
