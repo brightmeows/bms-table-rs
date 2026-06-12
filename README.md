@@ -1,11 +1,9 @@
 # BMS Difficulty Table Parsing Library
 
+[![Codeberg](https://img.shields.io/badge/Codeberg-brightmeows/bms--table--rs-218b7e?logo=codeberg&logoColor=white)](https://codeberg.org/brightmeows/bms-table-rs)
 [![Crates.io](https://img.shields.io/crates/v/bms-table)](https://crates.io/crates/bms-table)
 [![Documentation](https://docs.rs/bms-table/badge.svg)](https://docs.rs/bms-table)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![CI](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/rust.yml)
-[![codecov](https://codecov.io/gh/MiyakoMeow/bms-table-rs/graph/badge.svg)](https://codecov.io/gh/MiyakoMeow/bms-table-rs)
-[![Cargo Deny](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/cargo-deny.yml/badge.svg)](https://github.com/MiyakoMeow/bms-table-rs/actions/workflows/cargo-deny.yml)
 [![Downloads](https://img.shields.io/crates/d/bms-table)](https://crates.io/crates/bms-table)
 
 A Rust library to parse BMS difficulty tables. It can build a complete data structure from header JSON and chart data JSON, covering the header, courses, trophies and chart items.
@@ -39,7 +37,7 @@ The `examples/` directory contains network fetching examples that demonstrate ho
 ## Docs & Links
 
 - `docs.rs`: https://docs.rs/bms-table
-- Repository: https://github.com/MiyakoMeow/bms-table-rs
+- Repository: https://codeberg.org/brightmeows/bms-table-rs
 
 ## License
 
