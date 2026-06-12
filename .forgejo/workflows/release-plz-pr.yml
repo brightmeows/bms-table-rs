@@ -9,7 +9,7 @@ jobs:
     name: Prepare release PR
     runs-on: codeberg-tiny
     container:
-      image: ghcr.io/catthehacker/ubuntu:rust-latest
+      image: docker.io/catthehacker/ubuntu:rust-24.04
 
     steps:
       - name: Checkout repository
