@@ -31,7 +31,7 @@
 #![warn(clippy::must_use_candidate)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-pub mod de;
+mod de;
 
 use std::collections::BTreeMap;
 
@@ -53,6 +53,14 @@ pub struct BmsTable {
     pub header: BmsTableHeader,
     /// Table data containing the chart list
     pub data: BmsTableData,
+}
+
+impl BmsTable {
+    /// Creates a new `BmsTable` from its header and data.
+    #[must_use]
+    pub const fn new(header: BmsTableHeader, data: BmsTableData) -> Self {
+        Self { header, data }
+    }
 }
 
 /// BMS header information.
@@ -88,6 +96,21 @@ pub struct BmsTableHeader {
 }
 
 impl BmsTableHeader {
+    /// Creates a new `BmsTableHeader` with the given required fields and defaults for everything else.
+    #[must_use]
+    pub const fn new(name: String, symbol: String, data_url: String) -> Self {
+        Self {
+            name,
+            symbol,
+            data_url,
+            tag: None,
+            mode: None,
+            course: Vec::new(),
+            level_order: Vec::new(),
+            extra: BTreeMap::new(),
+        }
+    }
+
     /// Returns `true` if the course list contains no entries.
     #[must_use]
     pub const fn course_is_empty(&self) -> bool {
@@ -153,7 +176,8 @@ impl From<CourseInfo> for CourseGroup {
 /// Course information.
 ///
 /// Describes a course's name, constraints, trophies and chart set. During parsing, `md5`/`sha256` lists are automatically converted into `ChartItem`s, and charts missing `level` are filled with default value `"0"`.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "crate::de::CourseInfoRaw")]
 pub struct CourseInfo {
     /// Course name, e.g. "Satellite Skill Analyzer 2nd sl0"
     pub name: String,
@@ -195,6 +219,23 @@ pub struct ChartItem {
     /// Extra data
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
+}
+
+impl ChartItem {
+    /// Creates a new `ChartItem` with the given level and all other fields set to defaults.
+    #[must_use]
+    pub const fn new(level: String) -> Self {
+        Self {
+            level,
+            md5: None,
+            sha256: None,
+            title: None,
+            artist: None,
+            url: None,
+            url_diff: None,
+            extra: BTreeMap::new(),
+        }
+    }
 }
 
 /// Trophy information.
