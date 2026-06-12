@@ -27,7 +27,7 @@ where
 
 /// Internal helper type: used to construct `CourseInfo` more simply and handle md5/sha256 lists.
 #[derive(Deserialize)]
-struct CourseInfoRaw {
+pub(crate) struct CourseInfoRaw {
     /// Course name
     name: String,
     /// Constraint list
@@ -99,16 +99,6 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             trophy: raw.trophy,
             charts,
         })
-    }
-}
-
-impl<'de> Deserialize<'de> for CourseInfo {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let raw = CourseInfoRaw::deserialize(deserializer)?;
-        Self::try_from(raw).map_err(serde::de::Error::custom)
     }
 }
 
