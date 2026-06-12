@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
                         result.name,
                         table.data.charts.len(),
                         table.header.course.len(),
-                        table.header.course.iter().flatten().count()
+                        table.header.flatten_courses().len()
                     );
                 }
                 Err(e) => {

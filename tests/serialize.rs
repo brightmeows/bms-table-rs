@@ -1,6 +1,6 @@
 //! Unit tests for serialization behavior of header, chart items, and table data
 
-use bms_table::{BmsTableData, BmsTableHeader, ChartItem};
+use bms_table::{BmsTableData, BmsTableHeader, ChartItem, CourseGroup};
 use std::collections::BTreeMap;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_header_serialize_flattens_extra() {
         data_url: "charts.json".to_string(),
         tag: None,
         mode: None,
-        course: vec![Vec::new()],
+        course: vec![CourseGroup::Nested(vec![])],
         level_order: vec!["0".to_string(), "1".to_string()],
         extra: {
             let mut m = BTreeMap::new();

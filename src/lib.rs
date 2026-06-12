@@ -14,14 +14,15 @@
 //! # Usage
 //!
 //! ```rust
-//! # fn main() -> anyhow::Result<()> {
-//! use bms_table::{BmsTable, BmsTableHeader, BmsTableData};
+//! # fn main() -> Result<(), serde_json::Error> {
+//! use bms_table::{BmsTable, BmsTableHeader, BmsTableData, CourseGroup};
 //!
 //! let header_json = r#"{ "name": "Test", "symbol": "t", "data_url": "charts.json", "course": [], "level_order": [] }"#;
 //! let data_json = r#"[]"#;
 //! let header: BmsTableHeader = serde_json::from_str(header_json)?;
 //! let data: BmsTableData = serde_json::from_str(data_json)?;
-//! let _table = BmsTable { header, data };
+//! let table = BmsTable { header, data };
+//! assert!(table.header.course_is_empty());
 //! # Ok(())
 //! # }
 //! ```
@@ -39,7 +40,7 @@ use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::de::{de_numstring, deserialize_course_groups, deserialize_level_order};
+use crate::de::{de_numstring, deserialize_level_order};
 
 // Data types
 
@@ -71,15 +72,32 @@ pub struct BmsTableHeader {
     /// Play mode hint; same semantics as bmson's `mode_hint`
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
-    /// Course information as an array of course groups
-    #[serde(default, deserialize_with = "deserialize_course_groups")]
-    pub course: Vec<Vec<CourseInfo>>,
+    /// Course information, preserving the original JSON nesting shape.
+    ///
+    /// Supports flat arrays (`"course": [{...}]`) and arbitrarily nested arrays
+    /// (`"course": [[{...}]]`, `"course": [[{...}], [{...}]]`, etc.).
+    /// Each top-level array element is a [`CourseGroup`].
+    #[serde(default)]
+    pub course: Vec<CourseGroup>,
     /// Difficulty level order containing numbers and strings
     #[serde(default, deserialize_with = "deserialize_level_order")]
     pub level_order: Vec<String>,
     /// Extra data (unrecognized fields from header JSON)
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
+}
+
+impl BmsTableHeader {
+    /// Returns `true` if the course list contains no entries.
+    #[must_use]
+    pub const fn course_is_empty(&self) -> bool {
+        self.course.is_empty()
+    }
+
+    /// Flattens all [`CourseInfo`] references regardless of nesting depth.
+    pub fn flatten_courses(&self) -> Vec<&CourseInfo> {
+        self.course.iter().flat_map(CourseGroup::flatten).collect()
+    }
 }
 
 /// BMS table data.
@@ -90,6 +108,46 @@ pub struct BmsTableHeader {
 pub struct BmsTableData {
     /// Charts
     pub charts: Vec<ChartItem>,
+}
+
+/// Recursive course group supporting arbitrary nesting depth.
+///
+/// - [`Flat`][CourseGroup::Flat] — a single [`CourseInfo`] object
+/// - [`Nested`][CourseGroup::Nested] — a sub-group of courses (arbitrary nesting depth)
+///
+/// Together with `Vec<CourseGroup>` as the `course` field type, this preserves
+/// the original JSON nesting shape round-trip:
+///
+/// | JSON | Rust |
+/// |---|---|
+/// | `"course": []` | `vec![]` |
+/// | `"course": [{...}]` | `vec![Flat(CourseInfo)]` |
+/// | `"course": [[{...}]]` | `vec![Nested(vec![Flat(CourseInfo)])]` |
+/// | `"course": [[{...}], [{...}]]` | `vec![Nested(vec![Flat(..)]), Nested(vec![Flat(..)])]` |
+/// | `"course": [[[{...}]]]` | `vec![Nested(vec![Nested(vec![Flat(..)])])]` |
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CourseGroup {
+    /// A single course entry (JSON object).
+    Flat(CourseInfo),
+    /// A sub-group of courses (JSON array), enabling arbitrary nesting depth.
+    Nested(Vec<CourseGroup>),
+}
+
+impl CourseGroup {
+    /// Flattens all [`CourseInfo`] references in this sub-tree.
+    pub fn flatten(&self) -> Vec<&CourseInfo> {
+        match self {
+            Self::Flat(info) => vec![info],
+            Self::Nested(v) => v.iter().flat_map(CourseGroup::flatten).collect(),
+        }
+    }
+}
+
+impl From<CourseInfo> for CourseGroup {
+    fn from(info: CourseInfo) -> Self {
+        Self::Flat(info)
+    }
 }
 
 /// Course information.

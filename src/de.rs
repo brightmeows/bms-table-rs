@@ -8,31 +8,6 @@ use std::collections::BTreeMap;
 
 use crate::{ChartItem, CourseInfo, Trophy};
 
-/// Field-level deserialization: supports `course` being `Vec<CourseInfo>` or `Vec<Vec<CourseInfo>>`,
-/// and returns `vec![Vec::new()]` for an empty array to preserve previous behavior.
-pub(crate) fn deserialize_course_groups<'de, D>(
-    deserializer: D,
-) -> Result<Vec<Vec<CourseInfo>>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let Some(Value::Array(arr)) = Option::<Value>::deserialize(deserializer)? else {
-        return Ok(Vec::new());
-    };
-    if arr.is_empty() {
-        return Ok(vec![Vec::new()]);
-    }
-
-    if matches!(arr.first(), Some(Value::Array(_))) {
-        serde_json::from_value::<Vec<Vec<CourseInfo>>>(Value::Array(arr))
-            .map_err(serde::de::Error::custom)
-    } else {
-        let inner: Vec<CourseInfo> =
-            serde_json::from_value(Value::Array(arr)).map_err(serde::de::Error::custom)?;
-        Ok(vec![inner])
-    }
-}
-
 /// Field-level deserialization: converts `level_order` numbers or strings to strings,
 /// uses `to_string()` for other types, and returns an empty array by default.
 pub(crate) fn deserialize_level_order<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
