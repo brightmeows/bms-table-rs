@@ -8,7 +8,7 @@ jobs:
     name: Publish crates and create release
     runs-on: codeberg-medium
     container:
-      image: docker.io/catthehacker/ubuntu:rust-24.04
+      image: docker.io/catthehacker/ubuntu:rust-latest
 
     steps:
       - name: Checkout repository
