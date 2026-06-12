@@ -65,6 +65,12 @@ pub struct BmsTableHeader {
     pub symbol: String,
     /// URL of chart data file (preserves the original string from header JSON)
     pub data_url: String,
+    /// Tag label text; falls back to `symbol` when absent
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+    /// Play mode hint; same semantics as bmson's `mode_hint`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
     /// Course information as an array of course groups
     #[serde(default, deserialize_with = "deserialize_course_groups")]
     pub course: Vec<Vec<CourseInfo>>,
@@ -107,6 +113,10 @@ pub struct CourseInfo {
 /// Chart data item.
 ///
 /// Describes metadata and resource links for a single BMS file.
+///
+/// Non-essential fields present in the JSON (e.g. `name_diff`, `comment`, `ipfs`,
+/// `org_md5`, `subtitle`, `subartist`) are preserved via `extra` for forward
+/// compatibility.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChartItem {
     /// Difficulty level, e.g. "0"
@@ -118,12 +128,8 @@ pub struct ChartItem {
     pub sha256: Option<String>,
     /// Song title
     pub title: Option<String>,
-    /// Song subtitle
-    pub subtitle: Option<String>,
     /// Artist name
     pub artist: Option<String>,
-    /// Song sub-artist
-    pub subartist: Option<String>,
     /// File download URL
     pub url: Option<String>,
     /// Differential file download URL (optional)
