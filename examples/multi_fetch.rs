@@ -161,13 +161,10 @@ struct FetchResult {
 /// Fetch a single difficulty table
 async fn fetch_single_table(fetcher: &Fetcher, url: &Url) -> FetchResult {
     match fetcher.fetch_table(url.clone()).await {
-        Ok(fetched) => {
-            let bms_table = fetched.table;
-            FetchResult {
-                name: bms_table.header.name.clone(),
-                table: Ok(bms_table),
-            }
-        }
+        Ok(bms_table) => FetchResult {
+            name: bms_table.header.name.clone(),
+            table: Ok(bms_table),
+        },
         Err(e) => FetchResult {
             name: url.to_string(),
             table: Err(e),
