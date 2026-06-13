@@ -1,14 +1,8 @@
 //! Concurrent multi-table fetching example
 //!
-//! This example demonstrates fetching multiple BMS difficulty tables concurrently and emitting events when each table finishes.
-//! It uses asynchronous concurrency to process multiple tables in parallel for better efficiency.
-//!
-//! # Features
-//!
-//! - Concurrently fetch multiple BMS difficulty tables
-//! - Emit an event when each table finishes
-//! - Display fetch progress and results
-//! - Error handling and retry mechanics
+//! Fetches multiple BMS difficulty tables concurrently and emits an event
+//! when each table finishes. If fetching fails for one table, the program
+//! prints the error and continues with others.
 
 #[path = "util/shared.rs"]
 mod shared;
@@ -20,41 +14,21 @@ use std::env;
 use tokio::sync::mpsc;
 use url::Url;
 
-/// Main function
-///
-/// Demonstrates the full functionality of concurrent fetching across multiple difficulty tables.
-/// Fetches multiple BMS difficulty tables simultaneously and emits an event when each one finishes.
-///
-/// # Parameters
-///
-/// Optional command-line arguments should be a list of BMS difficulty table URLs. If not provided, a default list is used.
-///
-/// # Return value
-///
-/// Returns `Result<()>`; `Ok(())` on success, otherwise an error.
-///
-/// # Error handling
-///
-/// If fetching fails for one table, the program prints the error and continues with others.
+/// Demonstrates concurrent fetching across multiple difficulty tables.
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Display program title
     println!("Concurrent difficulty-table fetcher");
     println!("===================");
 
-    // Create a reusable fetcher
     let fetcher = Fetcher::lenient()?;
 
-    // Display fetching information
     let urls = table_urls();
     let url_count = urls.len();
     println!("Fetching {url_count} difficulty tables...");
     println!();
 
-    // Create a channel for event handling
     let (tx, mut rx) = mpsc::channel::<FetchResult>(100);
 
-    // Start the event handler task
     let event_handler = tokio::spawn(async move {
         while let Some(result) = rx.recv().await {
             match result.table {
@@ -73,7 +47,6 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Fetch all tables concurrently
     let fetch_tasks: Vec<_> = urls
         .into_iter()
         .map(|url| {
@@ -86,16 +59,13 @@ async fn main() -> Result<()> {
         })
         .collect();
 
-    // Wait for all fetch tasks to finish
     for task in fetch_tasks {
         let _ = task.await;
     }
 
-    // Close the sender and wait for the event handler to finish
     drop(tx);
     let _ = event_handler.await;
 
-    // Display summary
     println!();
     println!("Fetch summary:");
     println!("  Concurrency: {url_count} tables");
@@ -105,12 +75,9 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-/// Get the list of URLs to use
+/// Collect table URLs from command-line args or fall back to a default list.
 fn table_urls() -> Vec<Url> {
-    // Read command-line arguments
     let args: Vec<String> = env::args().collect();
-
-    // Determine the URL list to use
 
     if args.len() > 1 {
         args.iter()
@@ -148,16 +115,13 @@ fn table_urls() -> Vec<Url> {
     }
 }
 
-/// Fetch result for a difficulty table
+/// Fetch result for a single table, tagged with its display name.
 #[derive(Debug)]
 struct FetchResult {
-    /// Table name
     name: String,
-    /// Result of fetching the table
     table: anyhow::Result<BmsTable>,
 }
 
-/// Fetch a single difficulty table
 async fn fetch_single_table(fetcher: &Fetcher, url: &Url) -> FetchResult {
     match fetcher.fetch_table(url.clone()).await {
         Ok(bms_table) => FetchResult {

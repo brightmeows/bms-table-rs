@@ -19,11 +19,11 @@ async fn main() -> anyhow::Result<()> {
 
     let fetcher = Fetcher::lenient()?;
     let out = fetcher.fetch_table_list(url.clone()).await?;
-    let listes = out.tables;
+    let entries = out.tables;
     let raw = out.raw_json;
-    println!("Fetched {} table list entries.", listes.len());
+    println!("Fetched {} table list entries.", entries.len());
 
-    for (i, item) in listes.iter().take(10).enumerate() {
+    for (i, item) in entries.iter().take(10).enumerate() {
         println!("#{i}: {} [{}] -> {}", item.name, item.symbol, item.url);
     }
 
