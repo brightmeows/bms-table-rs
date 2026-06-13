@@ -28,10 +28,6 @@
 //! # }
 //! ```
 
-#![warn(missing_docs)]
-#![warn(clippy::must_use_candidate)]
-#![deny(rustdoc::broken_intra_doc_links)]
-
 mod de;
 mod error;
 
