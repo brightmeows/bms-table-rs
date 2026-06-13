@@ -2,6 +2,7 @@
 //!
 //! Centralizes all `Deserialize` implementations and helper raw types here, keeping `lib.rs` focused on type definitions.
 
+use serde::de::Error as SerdeError;
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -48,7 +49,7 @@ pub(crate) struct CourseInfoRaw {
 }
 
 impl TryFrom<CourseInfoRaw> for CourseInfo {
-    type Error = String;
+    type Error = serde_json::Error;
 
     fn try_from(raw: CourseInfoRaw) -> Result<Self, Self::Error> {
         let mut charts: Vec<ChartItem> =
@@ -59,13 +60,12 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             if chart_value.get("level").is_none() {
                 let obj = chart_value
                     .as_object()
-                    .ok_or_else(|| "chart_value is not an object".to_string())?
-                    .clone();
-                let mut obj = obj;
+                    .ok_or_else(|| SerdeError::custom("chart_value is not an object"))?;
+                let mut obj = obj.clone();
                 obj.insert("level".to_string(), Value::String("0".to_string()));
                 chart_value = Value::Object(obj);
             }
-            let item: ChartItem = serde_json::from_value(chart_value).map_err(|e| e.to_string())?;
+            let item: ChartItem = serde_json::from_value(chart_value)?;
             charts.push(item);
         }
 
