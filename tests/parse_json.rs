@@ -682,6 +682,36 @@ fn level_index_empty_level_order_returns_none() {
 }
 
 #[test]
+fn effective_tag_returns_tag_when_present() {
+    let header = BmsTableHeader {
+        name: "Test".into(),
+        symbol: "t".into(),
+        data_url: "c.json".into(),
+        tag: Some("★".into()),
+        mode: None,
+        course: CourseGroup::default(),
+        level_order: vec![],
+        extra: BTreeMap::new(),
+    };
+    assert_eq!(header.effective_tag(), "★");
+}
+
+#[test]
+fn effective_tag_falls_back_to_symbol_when_absent() {
+    let header = BmsTableHeader {
+        name: "Test".into(),
+        symbol: "sl".into(),
+        data_url: "c.json".into(),
+        tag: None,
+        mode: None,
+        course: CourseGroup::default(),
+        level_order: vec![],
+        extra: BTreeMap::new(),
+    };
+    assert_eq!(header.effective_tag(), "sl");
+}
+
+#[test]
 fn chart_item_new_fields_land_in_extra() {
     let data_json = json!([
         {

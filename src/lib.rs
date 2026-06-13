@@ -74,7 +74,8 @@ pub struct BmsTableHeader {
     pub symbol: String,
     /// URL of chart data file (preserves the original string from header JSON)
     pub data_url: String,
-    /// Tag label text; falls back to `symbol` when absent
+    /// Tag label text; use [`effective_tag`](BmsTableHeader::effective_tag) to
+    /// get the spec-mandated fallback to `symbol` when this is `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tag: Option<String>,
     /// Play mode hint; same semantics as bmson's `mode_hint`
@@ -131,6 +132,23 @@ impl BmsTableHeader {
     #[must_use]
     pub fn level_index(&self, level: &str) -> Option<usize> {
         self.level_order.iter().position(|l| l == level)
+    }
+
+    /// Returns the effective tag, falling back to `symbol` when `tag` is `None`.
+    ///
+    /// Per the BMS difficulty table spec, the `tag` field should fall back
+    /// to `symbol` when absent. This method implements that behavior.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use bms_table::BmsTableHeader;
+    /// let header = BmsTableHeader::new("Table".into(), "sl".into(), "d.json".into());
+    /// assert_eq!(header.effective_tag(), "sl");
+    /// ```
+    #[must_use]
+    pub fn effective_tag(&self) -> &str {
+        self.tag.as_deref().unwrap_or(&self.symbol)
     }
 }
 
