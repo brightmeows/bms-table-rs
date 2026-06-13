@@ -199,10 +199,13 @@ impl CourseGroup {
 
     /// Flattens this sub-tree into owned [`CourseInfo`] values.
     #[must_use]
-    pub fn into_flatten(self) -> Vec<CourseInfo> {
+    pub fn into_flattened(self) -> Vec<CourseInfo> {
         match self {
             Self::Courses(v) => v,
-            Self::SubGroups(v) => v.into_iter().flat_map(CourseGroup::into_flatten).collect(),
+            Self::SubGroups(v) => v
+                .into_iter()
+                .flat_map(CourseGroup::into_flattened)
+                .collect(),
         }
     }
 }
@@ -323,7 +326,7 @@ pub struct ChartItem {
     ///
     /// Unlike other optional fields (`md5`, `sha256`, `title`, `artist`, `url`, `url_diff`)
     /// which serialize as `null` when absent, `comment` is skipped entirely when `None`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     /// Extra data (unrecognized fields)
     #[serde(flatten)]
