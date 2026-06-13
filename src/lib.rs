@@ -288,22 +288,24 @@ impl CourseInfo {
     /// with `level` defaulting to `"0"` per the BMS difficulty table spec.
     #[must_use]
     pub fn all_charts(&self) -> Vec<ChartItem> {
-        fn from_md5(hash: String) -> ChartItem {
+        fn from_md5(hash: &str) -> ChartItem {
             ChartItem {
-                md5: Some(hash),
-                ..ChartItem::new(crate::de::default_level())
+                md5: Some(hash.to_owned()),
+                level: "0".to_owned(),
+                ..ChartItem::empty()
             }
         }
-        fn from_sha256(hash: String) -> ChartItem {
+        fn from_sha256(hash: &str) -> ChartItem {
             ChartItem {
-                sha256: Some(hash),
-                ..ChartItem::new(crate::de::default_level())
+                sha256: Some(hash.to_owned()),
+                level: "0".to_owned(),
+                ..ChartItem::empty()
             }
         }
 
         let mut result = self.charts.clone();
-        result.extend(self.md5.iter().cloned().map(from_md5));
-        result.extend(self.sha256.iter().cloned().map(from_sha256));
+        result.extend(self.md5.iter().map(|h| from_md5(h)));
+        result.extend(self.sha256.iter().map(|h| from_sha256(h)));
         result
     }
 }
@@ -354,6 +356,27 @@ pub struct ChartItem {
 }
 
 impl ChartItem {
+    /// Creates a zero-alloc empty `ChartItem` with an empty level string.
+    ///
+    /// Unlike [`new`][Self::new] and [`default`][Default::default], this constructor
+    /// does **not** allocate — the level is an empty `String` (not `"0"`).
+    /// Prefer [`new`][Self::new] or [`default`][Default::default] when you need the
+    /// spec-mandated default level.
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self {
+            level: String::new(),
+            md5: None,
+            sha256: None,
+            title: None,
+            artist: None,
+            url: None,
+            url_diff: None,
+            comment: None,
+            extra: BTreeMap::new(),
+        }
+    }
+
     /// Creates a new `ChartItem` with the given level and all other fields set to defaults.
     #[must_use]
     pub const fn new(level: String) -> Self {
