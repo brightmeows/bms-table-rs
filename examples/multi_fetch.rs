@@ -60,10 +60,9 @@ async fn main() -> Result<()> {
             match result.table {
                 Ok(table) => {
                     println!(
-                        "{} fetched successfully ({} charts, {} course groups, {} courses)",
+                        "{} fetched successfully ({} charts, {} courses)",
                         result.name,
                         table.data.charts.len(),
-                        table.header.course.len(),
                         table.header.flatten_courses().len()
                     );
                 }

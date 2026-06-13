@@ -20,10 +20,9 @@ async fn main() -> Result<()> {
     match fetcher.fetch_table(url.clone()).await {
         Ok(table) => {
             println!(
-                "{} fetched successfully ({} charts, {} course groups, {} courses)",
+                "{} fetched successfully ({} charts, {} courses)",
                 table.header.name,
                 table.data.charts.len(),
-                table.header.course.len(),
                 table.header.flatten_courses().len()
             );
         }
