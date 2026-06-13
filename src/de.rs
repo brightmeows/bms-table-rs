@@ -1,12 +1,10 @@
-//! Deserialization implementation module
+//! Deserialization helpers module
 //!
-//! Centralizes all `Deserialize` implementations and helper raw types here, keeping `lib.rs` focused on type definitions.
+//! Centralizes field-level `Deserialize` helpers for `level` and `level_order`,
+//! keeping `lib.rs` focused on type definitions.
 
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
-use std::collections::BTreeMap;
-
-use crate::{ChartItem, CourseInfo, Trophy};
 
 /// Field-level deserialization: converts `level_order` entries to strings,
 /// accepting only strings and numbers; returns an error for any other type.
@@ -28,81 +26,9 @@ where
         .collect()
 }
 
-/// Internal helper type: used to construct `CourseInfo` more simply and handle md5/sha256 lists.
-#[derive(Deserialize)]
-pub(crate) struct CourseInfoRaw {
-    /// Course name
-    name: String,
-    /// Constraint list
-    #[serde(default)]
-    constraint: Vec<String>,
-    /// Trophy list
-    #[serde(default)]
-    trophy: Vec<Trophy>,
-    /// MD5 list converted into chart items
-    #[serde(default, rename = "md5")]
-    md5list: Vec<String>,
-    /// SHA256 list converted into chart items
-    #[serde(default, rename = "sha256")]
-    sha256list: Vec<String>,
-    /// Raw chart objects (filled with default level if missing)
-    #[serde(default)]
-    charts: Vec<Value>,
-}
-
-impl TryFrom<CourseInfoRaw> for CourseInfo {
-    type Error = serde_json::Error;
-
-    fn try_from(raw: CourseInfoRaw) -> Result<Self, Self::Error> {
-        let mut charts: Vec<ChartItem> =
-            Vec::with_capacity(raw.charts.len() + raw.md5list.len() + raw.sha256list.len());
-
-        // Deserialize raw chart values directly — missing `level` falls back
-        // to serde's `default` attribute, and null is handled by `de_numstring`;
-        // both return the spec default "0".
-        for chart_value in raw.charts {
-            let item: ChartItem = serde_json::from_value(chart_value)?;
-            charts.push(item);
-        }
-
-        // md5list -> charts (level defaults to "0" per spec)
-        charts.extend(raw.md5list.into_iter().map(|md5| ChartItem {
-            level: default_level(),
-            md5: Some(md5),
-            sha256: None,
-            title: None,
-            artist: None,
-            url: None,
-            url_diff: None,
-            comment: None,
-            extra: BTreeMap::new(),
-        }));
-
-        // sha256list -> charts (level defaults to "0" per spec)
-        charts.extend(raw.sha256list.into_iter().map(|sha256| ChartItem {
-            level: default_level(),
-            md5: None,
-            sha256: Some(sha256),
-            title: None,
-            artist: None,
-            url: None,
-            url_diff: None,
-            comment: None,
-            extra: BTreeMap::new(),
-        }));
-
-        Ok(Self {
-            name: raw.name,
-            constraint: raw.constraint,
-            trophy: raw.trophy,
-            charts,
-        })
-    }
-}
-
 /// Default level value per the BMS difficulty table spec.
 ///
-/// Used when `level` is absent or `null` in course charts and
+/// Used when `level` is absent or `null` in chart data and
 /// md5/sha256 shorthand lists.
 pub(crate) fn default_level() -> String {
     "0".to_string()
