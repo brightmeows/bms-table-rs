@@ -68,10 +68,8 @@ jobs:
       - name: Install release-plz and publish crates
         if: steps.check-release.outputs.needed == 'true'
         run: |
-          echo "::group::Install release-plz and cargo-semver-checks"
-          cargo binstall --no-confirm \
-            release-plz@0.3.159 \
-            cargo-semver-checks@0.48
+          echo "::group::Install release-plz"
+          cargo binstall --no-confirm release-plz@0.3
           echo "::endgroup::"
 
           echo "::group::Configure git"

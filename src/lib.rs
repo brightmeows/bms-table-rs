@@ -123,16 +123,12 @@ impl BmsTableHeader {
     ///
     /// ```rust
     /// # use bms_table::BmsTableHeader;
-    /// let header = BmsTableHeader {
-    /// #   name: "Test".into(),
-    /// #   symbol: "t".into(),
-    /// #   data_url: "d.json".into(),
-    /// #   tag: None,
-    /// #   mode: None,
-    /// #   course: Default::default(),
-    ///     level_order: vec!["1".into(), "2".into(), "3".into()],
-    /// #   extra: Default::default(),
-    /// };
+    /// let mut header = BmsTableHeader::new(
+    ///     "Test".into(),
+    ///     "t".into(),
+    ///     "d.json".into(),
+    /// );
+    /// header.level_order = vec!["1".into(), "2".into(), "3".into()];
     /// assert_eq!(header.level_index("2"), Some(1));
     /// assert_eq!(header.level_index("4"), None);
     /// ```
@@ -193,6 +189,7 @@ impl Default for CourseGroup {
 
 impl CourseGroup {
     /// Flattens all [`CourseInfo`] references in this sub-tree.
+    #[must_use]
     pub fn flatten(&self) -> Vec<&CourseInfo> {
         match self {
             Self::Courses(v) => v.iter().collect(),
@@ -201,6 +198,7 @@ impl CourseGroup {
     }
 
     /// Flattens this sub-tree into owned [`CourseInfo`] values.
+    #[must_use]
     pub fn into_flatten(self) -> Vec<CourseInfo> {
         match self {
             Self::Courses(v) => v,
@@ -248,6 +246,12 @@ pub struct CourseInfo {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChartItem {
     /// Difficulty level, e.g. "0"
+    ///
+    /// Defaults to `""` when `null` or absent in JSON.
+    /// Note: the BMS difficulty table spec states that course charts
+    /// auto-converted from `md5`/`sha256` lists should default to `"0"`,
+    /// but this parser uses `""` for consistency — a non-empty default
+    /// `"0"` could be confused with an actual difficulty level.
     #[serde(default, deserialize_with = "de_numstring")]
     pub level: String,
     /// MD5 hash of the file
@@ -385,10 +389,17 @@ impl BmsTableHtml {
         let mut in_meta = false;
         let mut is_bmstable = false;
         let mut content: Option<&'a str> = None;
+        let mut tokenizer_error: Option<String> = None;
 
         for token in Tokenizer::from(html_content) {
-            let Ok(token) = token else {
-                continue;
+            let token = match token {
+                Ok(t) => t,
+                Err(e) => {
+                    if tokenizer_error.is_none() {
+                        tokenizer_error = Some(e.to_string());
+                    }
+                    continue;
+                }
             };
             match token {
                 Token::ElementStart { local, .. } => {
@@ -420,6 +431,8 @@ impl BmsTableHtml {
             }
         }
 
-        Err(BmsTableError::MetaTagNotFound)
+        Err(tokenizer_error
+            .map(BmsTableError::TokenizerError)
+            .unwrap_or(BmsTableError::MetaTagNotFound))
     }
 }

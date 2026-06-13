@@ -132,7 +132,7 @@ fn table_urls() -> Vec<Url> {
             "http://walkure.net/hakkyou/for_glassist/bms/?lamp=fc",
             "https://notmichaelchen.github.io/stella-table-extensions/stellalite.html",
             "https://iidxtool.kasacontent.com/homage/table.php",
-            "https://zris.work/bmstable/dp_normal/dpn_header.json", // TODO
+            "https://zris.work/bmstable/dp_normal/dpn_header.json",
             "https://pmsdifficulty.xxxxxxxx.jp/PMSdifficulty.html",
             "https://pmsdifficulty.xxxxxxxx.jp/insane_PMSdifficulty.html",
             "http://zris.work/bmstable/pms_insane/insane_pmsdatabase_header.json",

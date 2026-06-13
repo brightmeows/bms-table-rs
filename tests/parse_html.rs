@@ -282,3 +282,15 @@ fn only_bmstable_content_attribute_returns_error() {
     let result = BmsTableHtml::extract_url(html);
     assert!(result.is_err());
 }
+
+#[test]
+fn empty_html_string_returns_error() {
+    let result = BmsTableHtml::extract_url("");
+    assert!(result.is_err());
+}
+
+#[test]
+fn whitespace_only_html_returns_error() {
+    let result = BmsTableHtml::extract_url("   \n  \t  ");
+    assert!(result.is_err());
+}

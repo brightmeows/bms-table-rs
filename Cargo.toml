@@ -2,6 +2,7 @@
 name = "bms-table"
 version = "0.13.0"
 edition = "2024"
+rust-version = "1.85"
 license = "Apache-2.0"
 description = "BMS (Be-Music Source) difficulty table parser"
 authors = ["MiyakoMeow"]
@@ -11,6 +12,9 @@ categories = ["data-structures", "games"]
 keywords = ["bms", "table", "data", "fetch", "parser"]
 
 [dependencies]
+# htmlparser v0.2.1 (2019) is used for zero-copy HTML <meta> extraction.
+# It is minimal and unmaintained — adequate for current needs but
+# should be replaced if broader HTML parsing or security fixes are required.
 htmlparser = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
