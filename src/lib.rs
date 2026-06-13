@@ -9,7 +9,7 @@
 //!
 //! - Parse header JSON into [`BmsTableHeader`], preserving unrecognized fields in `extra` for forward compatibility;
 //! - Parse chart data into [`BmsTableData`], supporting a plain array of [`ChartItem`] structure;
-//! - Courses automatically convert `md5`/`sha256` lists into chart items, filling missing `level` with "0";
+//! - Courses automatically convert `md5`/`sha256` lists into chart items, with `level` defaulting to `""`;
 //! - Extract the header JSON URL from HTML `<meta name="bmstable">` (zero-copy, returns `&str`).
 //!
 //! # Usage
@@ -217,7 +217,7 @@ impl From<CourseInfo> for CourseGroup {
 
 /// Course information.
 ///
-/// Describes a course's name, constraints, trophies and chart set. During parsing, `md5`/`sha256` lists are automatically converted into `ChartItem`s, and charts missing `level` are filled with default value `"0"`.
+/// Describes a course's name, constraints, trophies and chart set. During parsing, `md5`/`sha256` lists are automatically converted into `ChartItem`s with `level` defaulting to `""`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(try_from = "crate::de::CourseInfoRaw")]
 pub struct CourseInfo {
