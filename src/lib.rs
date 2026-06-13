@@ -22,7 +22,7 @@
 //! let header: BmsTableHeader = serde_json::from_str(header_json)?;
 //! let data: BmsTableData = serde_json::from_str(data_json)?;
 //! let table = BmsTable { header, data };
-//! assert!(table.header.course_is_empty());
+//! assert!(table.header.course.flatten().is_empty());
 //! # Ok(())
 //! # }
 //! ```
@@ -109,18 +109,6 @@ impl BmsTableHeader {
             level_order: Vec::new(),
             extra: BTreeMap::new(),
         }
-    }
-
-    /// Returns `true` if the course list contains no entries.
-    #[must_use]
-    pub fn course_is_empty(&self) -> bool {
-        self.flatten_courses().is_empty()
-    }
-
-    /// Flattens all [`CourseInfo`] references regardless of nesting depth.
-    #[must_use]
-    pub fn flatten_courses(&self) -> Vec<&CourseInfo> {
-        self.course.flatten()
     }
 }
 

@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
                         "{} fetched successfully ({} charts, {} courses)",
                         result.name,
                         table.data.charts.len(),
-                        table.header.flatten_courses().len()
+                        table.header.course.flatten().len()
                     );
                 }
                 Err(e) => {
