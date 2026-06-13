@@ -174,7 +174,7 @@ impl Fetcher {
             .fetch_json_with_fallback::<BmsTableList>(list_url, "table list", "table list json")
             .await?;
         Ok(FetchedTableList {
-            tables: list.listes,
+            tables: list.entries,
             raw_json: raw_used,
         })
     }

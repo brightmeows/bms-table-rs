@@ -78,6 +78,11 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             artist: None,
             url: None,
             url_diff: None,
+            comment: None,
+            url_pack: None,
+            name_pack: None,
+            org_md5: None,
+            mode: None,
             extra: BTreeMap::new(),
         }));
 
@@ -90,6 +95,11 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             artist: None,
             url: None,
             url_diff: None,
+            comment: None,
+            url_pack: None,
+            name_pack: None,
+            org_md5: None,
+            mode: None,
             extra: BTreeMap::new(),
         }));
 

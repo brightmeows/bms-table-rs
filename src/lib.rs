@@ -110,6 +110,32 @@ impl BmsTableHeader {
             extra: BTreeMap::new(),
         }
     }
+
+    /// Returns the index of a level in `level_order`, or `None` if not found.
+    ///
+    /// This is useful for comparing difficulty levels: a lower index means an easier level.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use bms_table::BmsTableHeader;
+    /// let header = BmsTableHeader {
+    /// #   name: "Test".into(),
+    /// #   symbol: "t".into(),
+    /// #   data_url: "d.json".into(),
+    /// #   tag: None,
+    /// #   mode: None,
+    /// #   course: Default::default(),
+    ///     level_order: vec!["1".into(), "2".into(), "3".into()],
+    /// #   extra: Default::default(),
+    /// };
+    /// assert_eq!(header.level_index("2"), Some(1));
+    /// assert_eq!(header.level_index("4"), None);
+    /// ```
+    #[must_use]
+    pub fn level_index(&self, level: &str) -> Option<usize> {
+        self.level_order.iter().position(|l| l == level)
+    }
 }
 
 /// BMS table data.
@@ -160,6 +186,14 @@ impl CourseGroup {
             Self::SubGroups(v) => v.iter().flat_map(CourseGroup::flatten).collect(),
         }
     }
+
+    /// Flattens this sub-tree into owned [`CourseInfo`] values.
+    pub fn into_flatten(self) -> Vec<CourseInfo> {
+        match self {
+            Self::Courses(v) => v,
+            Self::SubGroups(v) => v.into_iter().flat_map(CourseGroup::into_flatten).collect(),
+        }
+    }
 }
 
 impl From<CourseInfo> for CourseGroup {
@@ -191,9 +225,9 @@ pub struct CourseInfo {
 ///
 /// Describes metadata and resource links for a single BMS file.
 ///
-/// Non-essential fields present in the JSON (e.g. `name_diff`, `comment`, `ipfs`,
-/// `org_md5`, `subtitle`, `subartist`) are preserved via `extra` for forward
-/// compatibility.
+/// Spec-defined optional fields (`comment`, `url_pack`, `name_pack`, `org_md5`,
+/// `mode`) are first-class fields. Truly unrecognized fields are preserved via
+/// `extra` for forward compatibility.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChartItem {
     /// Difficulty level, e.g. "0"
@@ -211,7 +245,22 @@ pub struct ChartItem {
     pub url: Option<String>,
     /// Differential file download URL (optional)
     pub url_diff: Option<String>,
-    /// Extra data
+    /// Comment text
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+    /// Pack download URL
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url_pack: Option<String>,
+    /// Pack name
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name_pack: Option<String>,
+    /// MD5 of the bundled chart (用于自動差分導入)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_md5: Option<String>,
+    /// Play mode; overrides header `mode` when set
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// Extra data (unrecognized fields)
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
@@ -228,6 +277,11 @@ impl ChartItem {
             artist: None,
             url: None,
             url_diff: None,
+            comment: None,
+            url_pack: None,
+            name_pack: None,
+            org_md5: None,
+            mode: None,
             extra: BTreeMap::new(),
         }
     }
@@ -269,7 +323,7 @@ pub struct BmsTableInfo {
 #[serde(transparent)]
 pub struct BmsTableList {
     /// List of entries
-    pub listes: Vec<BmsTableInfo>,
+    pub entries: Vec<BmsTableInfo>,
 }
 
 // HTML parsing helper

@@ -53,6 +53,11 @@ fn test_chart_item_serialize_flattens_extra() {
         artist: None,
         url: Some("http://example.com".to_string()),
         url_diff: None,
+        comment: None,
+        url_pack: None,
+        name_pack: None,
+        org_md5: None,
+        mode: None,
         extra: {
             let mut m = BTreeMap::new();
             m.insert("custom_field".to_string(), serde_json::json!("value"));
@@ -88,6 +93,11 @@ fn test_bms_table_data_serialize_array() {
         artist: None,
         url: None,
         url_diff: None,
+        comment: None,
+        url_pack: None,
+        name_pack: None,
+        org_md5: None,
+        mode: None,
         extra: BTreeMap::new(),
     };
     let item2 = ChartItem {
@@ -98,6 +108,11 @@ fn test_bms_table_data_serialize_array() {
         artist: None,
         url: None,
         url_diff: None,
+        comment: None,
+        url_pack: None,
+        name_pack: None,
+        org_md5: None,
+        mode: None,
         extra: BTreeMap::new(),
     };
     let data = BmsTableData {
