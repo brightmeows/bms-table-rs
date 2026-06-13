@@ -9,7 +9,7 @@
 //!
 //! - Parse header JSON into [`BmsTableHeader`], preserving unrecognized fields in `extra` for forward compatibility;
 //! - Parse chart data into [`BmsTableData`], supporting a plain array of [`ChartItem`] structure;
-//! - Courses automatically convert `md5`/`sha256` lists into chart items, with `level` defaulting to `""`;
+//! - Courses automatically convert `md5`/`sha256` lists into chart items, with `level` defaulting to `"0"`;
 //! - Extract the header JSON URL from HTML `<meta name="bmstable">` (zero-copy, returns `&str`).
 //!
 //! # Usage
@@ -215,7 +215,7 @@ impl From<CourseInfo> for CourseGroup {
 
 /// Course information.
 ///
-/// Describes a course's name, constraints, trophies and chart set. During parsing, `md5`/`sha256` lists are automatically converted into `ChartItem`s with `level` defaulting to `""`.
+/// Describes a course's name, constraints, trophies and chart set. During parsing, `md5`/`sha256` lists are automatically converted into `ChartItem`s with `level` defaulting to `"0"`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(try_from = "crate::de::CourseInfoRaw")]
 pub struct CourseInfo {
@@ -247,12 +247,12 @@ pub struct CourseInfo {
 pub struct ChartItem {
     /// Difficulty level, e.g. "0"
     ///
-    /// Defaults to `""` when `null` or absent in JSON.
-    /// Note: the BMS difficulty table spec states that course charts
-    /// auto-converted from `md5`/`sha256` lists should default to `"0"`,
-    /// but this parser uses `""` for consistency — a non-empty default
-    /// `"0"` could be confused with an actual difficulty level.
-    #[serde(default, deserialize_with = "de_numstring")]
+    /// Defaults to `"0"` when `null` or absent in JSON, per the BMS
+    /// difficulty table spec.
+    #[serde(
+        default = "crate::de::default_level",
+        deserialize_with = "de_numstring"
+    )]
     pub level: String,
     /// MD5 hash of the file
     pub md5: Option<String>,

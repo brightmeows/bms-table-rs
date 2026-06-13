@@ -64,9 +64,9 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             charts.push(item);
         }
 
-        // md5list -> charts (level defaults to empty string)
+        // md5list -> charts (level defaults to "0" per spec)
         charts.extend(raw.md5list.into_iter().map(|md5| ChartItem {
-            level: String::new(),
+            level: default_level(),
             md5: Some(md5),
             sha256: None,
             title: None,
@@ -77,9 +77,9 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             extra: BTreeMap::new(),
         }));
 
-        // sha256list -> charts (level defaults to empty string)
+        // sha256list -> charts (level defaults to "0" per spec)
         charts.extend(raw.sha256list.into_iter().map(|sha256| ChartItem {
-            level: String::new(),
+            level: default_level(),
             md5: None,
             sha256: Some(sha256),
             title: None,
@@ -99,16 +99,24 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
     }
 }
 
+/// Default level value per the BMS difficulty table spec.
+///
+/// Used when `level` is absent or `null` in course charts and
+/// md5/sha256 shorthand lists.
+pub(crate) fn default_level() -> String {
+    "0".to_string()
+}
+
 /// Deserializes a value into a `String`, accepting strings and numbers.
 ///
-/// `null` is treated as missing (returns empty string) for leniency.
+/// `null` is treated as missing and returns the spec default `"0"`.
 pub(crate) fn de_numstring<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
     let opt = Option::<Value>::deserialize(deserializer)?;
     let Some(value) = opt else {
-        return Ok(String::new());
+        return Ok(default_level());
     };
     match value {
         Value::String(s) => Ok(s),
