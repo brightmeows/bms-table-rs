@@ -118,6 +118,10 @@ impl BmsTableHeader {
     ///
     /// This is useful for comparing difficulty levels: a lower index means an easier level.
     ///
+    /// **Note:** This performs a linear scan (`O(n)`) on each call. For repeated
+    /// lookups across many chart items, consider building a
+    /// `HashMap<&str, usize>` from `level_order` once.
+    ///
     /// # Example
     ///
     /// ```rust
