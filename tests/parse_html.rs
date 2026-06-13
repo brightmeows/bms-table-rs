@@ -18,7 +18,7 @@ fn test_extract_bmstable_from_meta() {
     </html>
     "#;
 
-    let result = BmsTableHtml::try_extract_bmstable_from_html(html);
+    let result = BmsTableHtml::extract_url(html);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "header.json");
 }
@@ -35,7 +35,7 @@ fn test_extract_bmstable_from_meta_property() {
     </html>
     "#;
 
-    let result = BmsTableHtml::try_extract_bmstable_from_html(html);
+    let result = BmsTableHtml::extract_url(html);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "https://example.com/header.json");
 }
@@ -54,6 +54,6 @@ fn test_no_bmstable_returns_error() {
     </html>
     "#;
 
-    let result = BmsTableHtml::try_extract_bmstable_from_html(html);
+    let result = BmsTableHtml::extract_url(html);
     assert!(result.is_err());
 }

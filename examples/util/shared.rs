@@ -54,8 +54,8 @@ fn get_web_header_json_value<T: DeserializeOwned>(
     match serde_json::from_str::<T>(&cleaned) {
         Ok(header_json) => Ok(HeaderQueryContent::Value(header_json)),
         Err(_) => {
-            let bmstable_url = BmsTableHtml::try_extract_bmstable_from_html(response_str)
-                .context("When extracting bmstable url")?;
+            let bmstable_url =
+                BmsTableHtml::extract_url(response_str).context("When extracting bmstable url")?;
             Ok(HeaderQueryContent::Url(bmstable_url))
         }
     }
