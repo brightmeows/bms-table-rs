@@ -23,8 +23,9 @@ repos:
     hooks:
       - id: cargo-clippy
         name: cargo clippy
+        # --all-targets: lint tests, examples, and benches too
         # --quiet: suppress per-file output
-        entry: cargo clippy --quiet
+        entry: cargo clippy --all-targets --quiet
         language: system
         types: [rust]
         pass_filenames: false
