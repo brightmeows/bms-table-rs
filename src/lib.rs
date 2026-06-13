@@ -247,7 +247,7 @@ impl From<CourseInfo> for CourseGroup {
 pub struct CourseInfo {
     /// Course name, e.g. "Satellite Skill Analyzer 2nd sl0"
     pub name: String,
-    /// Constraint list, e.g. ["`grade_mirror`", "`gauge_lr2`", "ln"]
+    /// Constraint list, e.g. `["grade_mirror", "gauge_lr2", "ln"]`
     #[serde(default)]
     pub constraint: Vec<String>,
     /// List of trophies, defining requirements for different ranks
@@ -538,8 +538,9 @@ impl BmsTableHtml {
             }
         }
 
-        Err(tokenizer_error
-            .map(BmsTableError::TokenizerError)
-            .unwrap_or(BmsTableError::MetaTagNotFound))
+        Err(tokenizer_error.map_or(
+            BmsTableError::MetaTagNotFound,
+            BmsTableError::TokenizerError,
+        ))
     }
 }

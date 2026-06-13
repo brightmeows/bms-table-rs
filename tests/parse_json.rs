@@ -8,6 +8,41 @@ use std::collections::BTreeMap;
 
 // JSON parsing related tests: derived from original lib_tests.rs and fetch_tests.rs
 
+/// Sample chart JSON used by multiple tests.
+fn sample_chart_json() -> serde_json::Value {
+    json!([
+        {
+            "level": "1",
+            "id": 1,
+            "md5": "test_md5_1",
+            "sha256": "test_sha256_1",
+            "title": "Test Song",
+            "artist": "Test Artist",
+            "url": "https://example.com/test.bms",
+            "url_diff": "https://example.com/test_diff.bms",
+            "custom_field": "custom_value",
+            "rating": 5.0
+        }
+    ])
+}
+
+/// Extracts the single [`CourseInfo`] from a `[[{...}]]` nested course group.
+fn extract_course_from_nested(group: &CourseGroup) -> &CourseInfo {
+    let CourseGroup::SubGroups(groups) = group else {
+        panic!("expected SubGroups, got {group:?}");
+    };
+    let [sub] = groups.as_slice() else {
+        panic!("expected one subgroup, got {}: {groups:?}", groups.len());
+    };
+    let CourseGroup::Courses(courses) = sub else {
+        panic!("expected Courses, got {sub:?}");
+    };
+    let [course] = courses.as_slice() else {
+        panic!("expected one course, got {}: {courses:?}", courses.len());
+    };
+    course
+}
+
 #[test]
 fn build_bms_table_from_json_parses_all_fields() {
     let header_json = json!({
@@ -34,20 +69,7 @@ fn build_bms_table_from_json_parses_all_fields() {
         "extra_field": "extra_value",
         "another_field": 123
     });
-    let data_json = json!([
-        {
-            "level": "1",
-            "id": 1,
-            "md5": "test_md5_1",
-            "sha256": "test_sha256_1",
-            "title": "Test Song",
-            "artist": "Test Artist",
-            "url": "https://example.com/test.bms",
-            "url_diff": "https://example.com/test_diff.bms",
-            "custom_field": "custom_value",
-            "rating": 5.0
-        }
-    ]);
+    let data_json = sample_chart_json();
     let header: BmsTableHeader = serde_json::from_value(header_json).unwrap();
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
     let bms_table = BmsTable { header, data };
@@ -57,23 +79,7 @@ fn build_bms_table_from_json_parses_all_fields() {
     assert_eq!(bms_table.data.charts.len(), 1);
 
     // Input is `"course": [[{...}]]` — nested structure
-    let course = match &bms_table.header.course {
-        CourseGroup::SubGroups(groups) => {
-            let [group] = groups.as_slice() else {
-                panic!("expected one group, got {}: {:?}", groups.len(), groups);
-            };
-            match group {
-                CourseGroup::Courses(courses) => {
-                    let [course] = courses.as_slice() else {
-                        panic!("expected one course, got {}: {:?}", courses.len(), courses);
-                    };
-                    course
-                }
-                other => panic!("expected Courses, got {:?}", other),
-            }
-        }
-        other => panic!("expected SubGroups, got {:?}", other),
-    };
+    let course = extract_course_from_nested(&bms_table.header.course);
     assert_eq!(course.name, "Test Course");
     assert_eq!(course.constraint, vec!["grade_mirror"]);
     assert_eq!(course.trophy.len(), 1);
@@ -170,12 +176,12 @@ fn build_bms_table_with_empty_fields_keeps_empty_strings() {
     };
     assert_eq!(score.level, "1");
     // Current behavior keeps empty strings as Some("") for optional string fields
-    assert_eq!(score.md5, Some("".to_string()));
-    assert_eq!(score.sha256, Some("".to_string()));
-    assert_eq!(score.title, Some("".to_string()));
-    assert_eq!(score.artist, Some("".to_string()));
-    assert_eq!(score.url, Some("".to_string()));
-    assert_eq!(score.url_diff, Some("".to_string()));
+    assert_eq!(score.md5, Some(String::new()));
+    assert_eq!(score.sha256, Some(String::new()));
+    assert_eq!(score.title, Some(String::new()));
+    assert_eq!(score.artist, Some(String::new()));
+    assert_eq!(score.url, Some(String::new()));
+    assert_eq!(score.url_diff, Some(String::new()));
 }
 
 #[test]
@@ -274,7 +280,7 @@ fn build_bms_table_extra_fields_ignored() {
     ]);
     let header: BmsTableHeader = serde_json::from_value(header_json).unwrap();
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
-    let _bms_table = BmsTable { header, data };
+    let _ = BmsTable { header, data };
 }
 
 #[test]
@@ -315,7 +321,7 @@ fn course_info_flat_list_deserialized_correctly() {
             };
             course
         }
-        other => panic!("expected Courses, got {:?}", other),
+        other @ CourseGroup::SubGroups(_) => panic!("expected Courses, got {other:?}"),
     };
     assert_eq!(course.name.as_str(), "Course 1");
     assert_eq!(course.md5, vec!["abc123", "def456"]);
@@ -380,7 +386,7 @@ fn course_info_nested_lists_deserialized_correctly() {
                     };
                     c
                 }
-                other => panic!("expected Courses, got {:?}", other),
+                other @ CourseGroup::SubGroups(_) => panic!("expected Courses, got {other:?}"),
             };
             let info2 = match g2 {
                 CourseGroup::Courses(courses) => {
@@ -389,11 +395,11 @@ fn course_info_nested_lists_deserialized_correctly() {
                     };
                     c
                 }
-                other => panic!("expected Courses, got {:?}", other),
+                other @ CourseGroup::SubGroups(_) => panic!("expected Courses, got {other:?}"),
             };
             (info1, info2)
         }
-        other => panic!("expected SubGroups, got {:?}", other),
+        other @ CourseGroup::Courses(_) => panic!("expected SubGroups, got {other:?}"),
     };
     assert_eq!(course1.name.as_str(), "Course 1");
     assert_eq!(course2.name.as_str(), "Course 2");
@@ -605,9 +611,8 @@ fn course_empty_nested_roundtrips_correctly() {
     let course = json!([[]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    let g = match &h.course {
-        CourseGroup::SubGroups(g) => g,
-        _ => panic!("expected SubGroups"),
+    let CourseGroup::SubGroups(g) = &h.course else {
+        panic!("expected SubGroups");
     };
     assert!(matches!(&g.first().unwrap(), CourseGroup::Courses(v) if v.is_empty()));
     let out = serde_json::to_value(&h).unwrap();
@@ -948,13 +953,11 @@ fn course_group_from_course_info_converts_correctly() {
         extra: BTreeMap::new(),
     };
     let group: CourseGroup = info.into();
-    match group {
-        CourseGroup::Courses(v) => {
-            assert_eq!(v.len(), 1);
-            assert_eq!(v.first().unwrap().name, "C1");
-        }
-        _ => panic!("expected Courses variant"),
-    }
+    let CourseGroup::Courses(v) = group else {
+        panic!("expected Courses variant");
+    };
+    assert_eq!(v.len(), 1);
+    assert_eq!(v.first().unwrap().name, "C1");
 }
 
 #[test]

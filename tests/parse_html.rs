@@ -42,7 +42,7 @@ fn extract_bmstable_from_meta_property_returns_url() {
 
 #[test]
 fn no_bmstable_returns_error() {
-    let html = r#"
+    let html = r"
     <!DOCTYPE html>
     <html>
     <head>
@@ -52,7 +52,7 @@ fn no_bmstable_returns_error() {
         <h1>BMS Table</h1>
     </body>
     </html>
-    "#;
+    ";
 
     let result = BmsTableHtml::extract_url(html);
     assert!(result.is_err());
@@ -141,14 +141,14 @@ fn mixed_case_meta_name_parsed_correctly() {
 
 #[test]
 fn single_quoted_attributes_parsed_correctly() {
-    let html = r#"
+    let html = r"
     <!DOCTYPE html>
     <html>
     <head>
         <meta name='bmstable' content='header.json'>
     </head>
     </html>
-    "#;
+    ";
 
     let result = BmsTableHtml::extract_url(html);
     assert!(result.is_ok());

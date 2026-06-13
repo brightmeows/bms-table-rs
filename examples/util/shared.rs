@@ -5,7 +5,10 @@
 //!
 //! Each example uses a different subset of utilities, so `dead_code` across
 //! examples is expected and harmless.
-#![allow(dead_code)]
+#![allow(
+    dead_code,
+    reason = "each example uses a different subset of utilities"
+)]
 
 use std::time::Duration;
 
@@ -26,13 +29,12 @@ fn replace_control_chars(s: &str) -> String {
 
 /// Parse JSON from a raw string with a cleaning fallback.
 fn parse_json_str_with_fallback<T: DeserializeOwned>(raw: &str) -> Result<(T, String)> {
-    match serde_json::from_str::<T>(raw) {
-        Ok(v) => Ok((v, raw.to_string())),
-        Err(_) => {
-            let cleaned = replace_control_chars(raw);
-            let v = serde_json::from_str::<T>(&cleaned)?;
-            Ok((v, cleaned))
-        }
+    if let Ok(v) = serde_json::from_str::<T>(raw) {
+        Ok((v, raw.to_string()))
+    } else {
+        let cleaned = replace_control_chars(raw);
+        let v = serde_json::from_str::<T>(&cleaned)?;
+        Ok((v, cleaned))
     }
 }
 
@@ -50,13 +52,12 @@ enum HeaderQueryContent<T> {
 fn get_web_header_json_value<T: DeserializeOwned>(
     response_str: &str,
 ) -> Result<HeaderQueryContent<T>> {
-    match serde_json::from_str::<T>(response_str) {
-        Ok(header_json) => Ok(HeaderQueryContent::Value(header_json)),
-        Err(_) => {
-            let bmstable_url =
-                BmsTableHtml::extract_url(response_str).context("When extracting bmstable url")?;
-            Ok(HeaderQueryContent::Url(bmstable_url.to_owned()))
-        }
+    if let Ok(header_json) = serde_json::from_str::<T>(response_str) {
+        Ok(HeaderQueryContent::Value(header_json))
+    } else {
+        let bmstable_url =
+            BmsTableHtml::extract_url(response_str).context("When extracting bmstable url")?;
+        Ok(HeaderQueryContent::Url(bmstable_url.to_owned()))
     }
 }
 
@@ -64,13 +65,12 @@ fn get_web_header_json_value<T: DeserializeOwned>(
 fn header_query_with_fallback<T: DeserializeOwned>(
     raw: &str,
 ) -> Result<(HeaderQueryContent<T>, String)> {
-    match get_web_header_json_value::<T>(raw) {
-        Ok(v) => Ok((v, raw.to_string())),
-        Err(_) => {
-            let cleaned = replace_control_chars(raw);
-            let v = get_web_header_json_value::<T>(&cleaned)?;
-            Ok((v, cleaned))
-        }
+    if let Ok(v) = get_web_header_json_value::<T>(raw) {
+        Ok((v, raw.to_string()))
+    } else {
+        let cleaned = replace_control_chars(raw);
+        let v = get_web_header_json_value::<T>(&cleaned)?;
+        Ok((v, cleaned))
     }
 }
 
