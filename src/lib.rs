@@ -456,10 +456,14 @@ impl BmsTableList {
 /// HTML parsing for BMS difficulty tables.
 ///
 /// Provides extraction of the header JSON URL from
-/// `<meta name="bmstable" content="...">` in HTML page content.
+/// `<meta name="bmstable" content="...">` or
+/// `<meta property="bmstable" content="...">` in HTML page content.
 ///
 /// The implementation uses the `htmlparser` zero-dependency tokenizer under
-/// the hood, returning a **borrowed** slice of the original input (zero-copy).
+/// the hood, returning a **borrowed** slice of the original input where
+/// possible. Attribute values that contain HTML entities are heap-allocated
+/// during decoding, but the returned `&str` lifetime remains tied to the
+/// original input.
 /// Tag and attribute names are matched case-insensitively.
 /// Content inside HTML comments is naturally ignored by the tokenizer.
 pub struct BmsTableHtml;
