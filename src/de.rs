@@ -110,7 +110,6 @@ where
     match value {
         Value::String(s) => Ok(s),
         Value::Number(n) => Ok(n.to_string()),
-        Value::Null => Ok(String::new()),
         other => Err(serde::de::Error::custom(format!(
             "expected string or number, got {}",
             other
