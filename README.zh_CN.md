@@ -25,7 +25,7 @@
 - `ChartItem`：谱面条目；规范字段外加 `extra` 前向兼容。
 - `Trophy`：奖杯要求（最大 miss 率、最低得分率）。
 - `BmsTableInfo` / `BmsTableList`：难度表列表 JSON 的数据类型。
-- `BmsTableHtml`：HTML 解析操作，详见 `extract_url`。
+- `BmsTableHtml`：HTML 解析操作，详见 `extract_url`（返回**借用**的 `&str`，零拷贝）。
 
 ## 示例程序
 
