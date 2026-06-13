@@ -109,7 +109,6 @@ fn table_urls() -> Vec<Url> {
             "https://lr2.sakura.ne.jp/overjoy.php",
         ]
         .into_iter()
-        .filter(|url| !url.is_empty())
         .filter_map(|s| Url::parse(s).ok())
         .collect()
     }
