@@ -682,3 +682,163 @@ fn roundtrip_course_missing_defaults_to_empty() {
     assert!(h.course.flatten().is_empty());
     assert!(matches!(&h.course, CourseGroup::Courses(v) if v.is_empty()));
 }
+
+#[test]
+fn level_index_returns_correct_index() {
+    let header = BmsTableHeader {
+        name: "Test".into(),
+        symbol: "t".into(),
+        data_url: "c.json".into(),
+        tag: None,
+        mode: None,
+        course: CourseGroup::default(),
+        level_order: vec!["1".into(), "2".into(), "3".into(), "11+".into()],
+        extra: BTreeMap::new(),
+    };
+    assert_eq!(header.level_index("1"), Some(0));
+    assert_eq!(header.level_index("2"), Some(1));
+    assert_eq!(header.level_index("3"), Some(2));
+    assert_eq!(header.level_index("11+"), Some(3));
+}
+
+#[test]
+fn level_index_missing_level_returns_none() {
+    let header = BmsTableHeader {
+        name: "Test".into(),
+        symbol: "t".into(),
+        data_url: "c.json".into(),
+        tag: None,
+        mode: None,
+        course: CourseGroup::default(),
+        level_order: vec!["1".into(), "2".into()],
+        extra: BTreeMap::new(),
+    };
+    assert_eq!(header.level_index("3"), None);
+    assert_eq!(header.level_index("0"), None);
+}
+
+#[test]
+fn level_index_empty_level_order_returns_none() {
+    let header = BmsTableHeader {
+        name: "Test".into(),
+        symbol: "t".into(),
+        data_url: "c.json".into(),
+        tag: None,
+        mode: None,
+        course: CourseGroup::default(),
+        level_order: vec![],
+        extra: BTreeMap::new(),
+    };
+    assert_eq!(header.level_index("1"), None);
+}
+
+#[test]
+fn chart_item_new_fields_deserialize() {
+    let data_json = json!([
+        {
+            "level": "1",
+            "md5": "abc",
+            "comment": "hard chart",
+            "url_pack": "https://example.com/pack.zip",
+            "name_pack": "Example Pack",
+            "org_md5": "def123",
+            "mode": "7K",
+            "custom_extra": "still in extra"
+        }
+    ]);
+    let data: BmsTableData = serde_json::from_value(data_json).unwrap();
+    let [chart] = data.charts.as_slice() else {
+        panic!("expected one chart, got {}", data.charts.len());
+    };
+    assert_eq!(chart.comment.as_deref(), Some("hard chart"));
+    assert_eq!(
+        chart.url_pack.as_deref(),
+        Some("https://example.com/pack.zip")
+    );
+    assert_eq!(chart.name_pack.as_deref(), Some("Example Pack"));
+    assert_eq!(chart.org_md5.as_deref(), Some("def123"));
+    assert_eq!(chart.mode.as_deref(), Some("7K"));
+    assert_eq!(
+        chart.extra.get("custom_extra"),
+        Some(&json!("still in extra"))
+    );
+}
+
+#[test]
+fn chart_item_new_fields_default_to_none() {
+    let data_json = json!([
+        {
+            "level": "1",
+            "md5": "abc"
+        }
+    ]);
+    let data: BmsTableData = serde_json::from_value(data_json).unwrap();
+    let [chart] = data.charts.as_slice() else {
+        panic!("expected one chart, got {}", data.charts.len());
+    };
+    assert!(chart.comment.is_none());
+    assert!(chart.url_pack.is_none());
+    assert!(chart.name_pack.is_none());
+    assert!(chart.org_md5.is_none());
+    assert!(chart.mode.is_none());
+}
+
+#[test]
+fn course_group_into_flatten_flat() {
+    let info = CourseInfo {
+        name: "C1".into(),
+        constraint: vec![],
+        trophy: vec![],
+        charts: vec![],
+    };
+    let group = CourseGroup::Courses(vec![info]);
+    let flat = group.into_flatten();
+    assert_eq!(flat.len(), 1);
+    assert_eq!(flat[0].name, "C1");
+}
+
+#[test]
+fn course_group_into_flatten_nested() {
+    let c1 = CourseInfo {
+        name: "C1".into(),
+        constraint: vec![],
+        trophy: vec![],
+        charts: vec![],
+    };
+    let c2 = CourseInfo {
+        name: "C2".into(),
+        constraint: vec![],
+        trophy: vec![],
+        charts: vec![],
+    };
+    let group = CourseGroup::SubGroups(vec![
+        CourseGroup::Courses(vec![c1]),
+        CourseGroup::Courses(vec![c2]),
+    ]);
+    let flat = group.into_flatten();
+    assert_eq!(flat.len(), 2);
+    assert_eq!(flat[0].name, "C1");
+    assert_eq!(flat[1].name, "C2");
+}
+
+#[test]
+fn course_group_into_flatten_empty() {
+    let group = CourseGroup::Courses(vec![]);
+    assert!(group.into_flatten().is_empty());
+}
+
+#[test]
+fn course_group_into_flatten_deeply_nested() {
+    let c1 = CourseInfo {
+        name: "C1".into(),
+        constraint: vec![],
+        trophy: vec![],
+        charts: vec![],
+    };
+    let group = CourseGroup::SubGroups(vec![CourseGroup::SubGroups(vec![CourseGroup::Courses(
+        vec![c1],
+    )])]);
+    let flat = group.into_flatten();
+    assert_eq!(flat.len(), 1);
+    assert_eq!(flat[0].name, "C1");
+}

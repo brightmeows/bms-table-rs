@@ -46,19 +46,19 @@ fn test_bms_table_list_serialize_array() {
         },
     };
     let list = BmsTableList {
-        listes: vec![item1, item2],
+        entries: vec![item1, item2],
     };
 
     let value = serde_json::to_value(&list).unwrap();
     assert!(value.is_array());
 
     let parsed: BmsTableList = serde_json::from_value(value).unwrap();
-    assert_eq!(parsed.listes.len(), 2);
-    let [i0, i1] = parsed.listes.as_slice() else {
+    assert_eq!(parsed.entries.len(), 2);
+    let [i0, i1] = parsed.entries.as_slice() else {
         panic!(
             "expected two items, got {}: {:?}",
-            parsed.listes.len(),
-            parsed.listes
+            parsed.entries.len(),
+            parsed.entries
         );
     };
     assert_eq!(i0.name.as_str(), ".WAS難易度表");
