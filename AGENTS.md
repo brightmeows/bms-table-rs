@@ -8,7 +8,7 @@
 pre-commit run --all-files    # manually trigger all hooks at once
 ```
 
-Hooks configured: `cargo fmt --check`, `cargo clippy --quiet`, `cargo doc --no-deps --quiet`.
+Hooks configured: `cargo fmt --check`, `cargo clippy --all-targets --quiet`, `cargo doc --no-deps --quiet`.
 
 ### CI / manual only
 
