@@ -39,12 +39,24 @@ jobs:
       - name: Restore cargo target
         uses: https://data.forgejo.org/actions/cache@v4
         with:
-          path: target
-          key: rust-target-${{ runner.os }}-${{ env.RUST_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
+          # 各子目录理由：
+          #   deps/         — registry 依赖的 .rlib/.rmeta，源码路径稳定，编译指纹一致，可重用
+          #   .fingerprint/ — cargo 依赖它的指纹判定 freshness，缺了即使有 .rlib 也会重编
+          #   semver-checks — 基线版本的 rustdoc JSON，版本不变就不会变，免去每次重新生成
+          path: |
+            target/debug/deps
+            target/debug/.fingerprint
+            target/semver-checks
+          key: rust-target-pr-${{ runner.os }}-${{ env.RUST_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            rust-target-${{ runner.os }}-${{ env.RUST_VERSION }}-
+            rust-target-pr-${{ runner.os }}-${{ env.RUST_VERSION }}-
 
       - name: Install release-plz and prepare release PR
+        # CARGO_TARGET_DIR: 将 release-plz 临时目录内的编译重定向到工作区 target，使其被缓存覆盖
+        # CARGO_INCREMENTAL: 增量数据路径绑定临时目录，永不命中，禁用以节省 I/O 和缓存空间
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+          CARGO_INCREMENTAL: 0
         run: |
           echo "::group::Install release-plz and cargo-semver-checks"
           cargo binstall --no-confirm \
