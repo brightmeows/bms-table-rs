@@ -57,8 +57,9 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
         let mut charts: Vec<ChartItem> =
             Vec::with_capacity(raw.charts.len() + raw.md5list.len() + raw.sha256list.len());
 
-        // Deserialize raw chart values directly — missing or null `level` is
-        // handled by `de_numstring` (returns `""`), so no explicit default needed.
+        // Deserialize raw chart values directly — missing `level` falls back
+        // to serde's `default` attribute, and null is handled by `de_numstring`;
+        // both return the spec default "0".
         for chart_value in raw.charts {
             let item: ChartItem = serde_json::from_value(chart_value)?;
             charts.push(item);
