@@ -326,6 +326,19 @@ pub struct BmsTableInfo {
     pub extra: BTreeMap<String, Value>,
 }
 
+impl BmsTableInfo {
+    /// Creates a new `BmsTableInfo` with the given required fields and an empty `extra`.
+    #[must_use]
+    pub const fn new(name: String, symbol: String, url: url::Url) -> Self {
+        Self {
+            name,
+            symbol,
+            url,
+            extra: BTreeMap::new(),
+        }
+    }
+}
+
 /// Wrapper type for the list of BMS difficulty tables.
 ///
 /// Transparently serialized as an array: serialization/deserialization behaves the same as the internal `Vec<BmsTableInfo>`, resulting in a JSON array rather than an object.
