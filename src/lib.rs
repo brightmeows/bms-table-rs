@@ -2,14 +2,15 @@
 //!
 //! Provides building a complete BMS difficulty table data structure from header JSON and chart data JSON,
 //! covering the header, courses, trophies, and chart items.
-//! Also includes HTML parsing for extracting the bmstable header URL from a page.
+//! Also includes HTML parsing (via [`htmlparser`](https://docs.rs/htmlparser)) for extracting the bmstable
+//! header URL from a page.
 //!
 //! # Features
 //!
 //! - Parse header JSON into [`BmsTableHeader`], preserving unrecognized fields in `extra` for forward compatibility;
 //! - Parse chart data into [`BmsTableData`], supporting a plain array of [`ChartItem`] structure;
 //! - Courses automatically convert `md5`/`sha256` lists into chart items, filling missing `level` with "0";
-//! - Extract the header JSON URL from HTML `<meta name="bmstable">`.
+//! - Extract the header JSON URL from HTML `<meta name="bmstable">` (zero-copy, returns `&str`).
 //!
 //! # Usage
 //!
@@ -39,7 +40,7 @@ pub use crate::error::BmsTableError;
 
 use std::collections::BTreeMap;
 
-use scraper::{Html, Selector};
+use htmlparser::{Token, Tokenizer};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -152,6 +153,14 @@ pub struct BmsTableData {
     pub charts: Vec<ChartItem>,
 }
 
+impl BmsTableData {
+    /// Creates a new `BmsTableData` with the given chart list.
+    #[must_use]
+    pub const fn new(charts: Vec<ChartItem>) -> Self {
+        Self { charts }
+    }
+}
+
 /// Recursive course tree supporting arbitrary nesting depth.
 ///
 /// - [`Courses`][CourseGroup::Courses] — a leaf node containing a list of [`CourseInfo`] entries
@@ -254,6 +263,9 @@ pub struct ChartItem {
     /// Differential file download URL (optional)
     pub url_diff: Option<String>,
     /// Comment text
+    ///
+    /// Unlike other optional fields (`md5`, `sha256`, `title`, `artist`, `url`, `url_diff`)
+    /// which serialize as `null` when absent, `comment` is skipped entirely when `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     /// Extra data (unrecognized fields)
@@ -320,23 +332,38 @@ pub struct BmsTableList {
     pub entries: Vec<BmsTableInfo>,
 }
 
+impl BmsTableList {
+    /// Creates a new `BmsTableList` with the given entries.
+    #[must_use]
+    pub const fn new(entries: Vec<BmsTableInfo>) -> Self {
+        Self { entries }
+    }
+}
+
 // HTML parsing helper
 
 /// HTML parsing for BMS difficulty tables.
 ///
 /// Provides extraction of the header JSON URL from
 /// `<meta name="bmstable" content="...">` in HTML page content.
+///
+/// The implementation uses the `htmlparser` zero-dependency tokenizer under
+/// the hood, returning a **borrowed** slice of the original input (zero-copy).
+/// Tag and attribute names are matched case-insensitively.
+/// Content inside HTML comments is naturally ignored by the tokenizer.
 pub struct BmsTableHtml;
 
 impl BmsTableHtml {
     /// Extract the header JSON URL from `<meta name="bmstable" content="...">` in HTML.
     ///
-    /// Scans `<meta>` tags looking for elements with `name="bmstable"` or `property="bmstable"`
-    /// and reads their `content` attribute.
+    /// Returns a borrowed `&str` referencing the original input — no allocation.
+    /// Scans `<meta>` tags looking for elements with `name="bmstable"` or
+    /// `property="bmstable"` and reads their `content` attribute.
     ///
     /// # Errors
     ///
-    /// Returns [`BmsTableError::MetaTagNotFound`] when the target tag is not found or `content` is empty.
+    /// Returns [`BmsTableError::MetaTagNotFound`] when the target tag is not
+    /// found or `content` is empty.
     ///
     /// # Example
     ///
@@ -354,25 +381,42 @@ impl BmsTableHtml {
     /// let url = BmsTableHtml::extract_url(html).unwrap();
     /// assert_eq!(url, "header.json");
     /// ```
-    pub fn extract_url(html_content: &str) -> Result<String, BmsTableError> {
-        let document = Html::parse_document(html_content);
-        let meta_selector =
-            Selector::parse("meta").map_err(|e| BmsTableError::SelectorParse(e.to_string()))?;
+    pub fn extract_url<'a>(html_content: &'a str) -> Result<&'a str, BmsTableError> {
+        let mut in_meta = false;
+        let mut is_bmstable = false;
+        let mut content: Option<&'a str> = None;
 
-        for element in document.select(&meta_selector) {
-            let is_bmstable = element
-                .value()
-                .attr("name")
-                .is_some_and(|v| v.eq_ignore_ascii_case("bmstable"))
-                || element
-                    .value()
-                    .attr("property")
-                    .is_some_and(|v| v.eq_ignore_ascii_case("bmstable"));
-            if is_bmstable
-                && let Some(content_attr) = element.value().attr("content")
-                && !content_attr.is_empty()
-            {
-                return Ok(content_attr.to_string());
+        for token in Tokenizer::from(html_content) {
+            let Ok(token) = token else {
+                continue;
+            };
+            match token {
+                Token::ElementStart { local, .. } => {
+                    in_meta = local.as_str().eq_ignore_ascii_case("meta");
+                    if in_meta {
+                        is_bmstable = false;
+                        content = None;
+                    }
+                }
+                Token::Attribute { local, value, .. } if in_meta => {
+                    let name = local.as_str();
+                    if name.eq_ignore_ascii_case("name") || name.eq_ignore_ascii_case("property") {
+                        is_bmstable =
+                            value.is_some_and(|v| v.as_str().eq_ignore_ascii_case("bmstable"));
+                    } else if name.eq_ignore_ascii_case("content") {
+                        content = value.map(|v| v.as_str());
+                    }
+                }
+                Token::ElementEnd { .. } if in_meta => {
+                    if is_bmstable
+                        && let Some(c) = content
+                        && !c.is_empty()
+                    {
+                        return Ok(c);
+                    }
+                    in_meta = false;
+                }
+                _ => {}
             }
         }
 

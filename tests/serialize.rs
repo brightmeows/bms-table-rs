@@ -1,6 +1,6 @@
 //! Unit tests for serialization behavior of header, chart items, and table data
 
-use bms_table::{BmsTableData, BmsTableHeader, ChartItem, CourseGroup};
+use bms_table::{BmsTableData, BmsTableHeader, BmsTableList, ChartItem, CourseGroup};
 use std::collections::BTreeMap;
 
 #[test]
@@ -150,4 +150,67 @@ fn optional_fields_skip_when_none() {
     // comment has skip_serializing_if = "Option::is_none"
     assert!(!obj.contains_key("comment"));
     assert!(!obj.contains_key("extra"));
+}
+
+#[test]
+fn header_tag_mode_roundtrip() {
+    let header = BmsTableHeader {
+        name: "Table".to_string(),
+        symbol: "t".to_string(),
+        data_url: "d.json".to_string(),
+        tag: Some("★".to_string()),
+        mode: Some("7K".to_string()),
+        course: CourseGroup::Courses(vec![]),
+        level_order: vec!["1".to_string(), "2".to_string()],
+        extra: BTreeMap::new(),
+    };
+
+    let value = serde_json::to_value(&header).unwrap();
+    assert_eq!(value.get("tag").unwrap(), &serde_json::json!("★"));
+    assert_eq!(value.get("mode").unwrap(), &serde_json::json!("7K"));
+
+    let parsed: BmsTableHeader = serde_json::from_value(value).unwrap();
+    assert_eq!(parsed.tag.as_deref(), Some("★"));
+    assert_eq!(parsed.mode.as_deref(), Some("7K"));
+}
+
+#[test]
+fn header_tag_mode_none_skipped_in_serialization() {
+    let header = BmsTableHeader {
+        name: "Table".to_string(),
+        symbol: "t".to_string(),
+        data_url: "d.json".to_string(),
+        tag: None,
+        mode: None,
+        course: CourseGroup::Courses(vec![]),
+        level_order: vec![],
+        extra: BTreeMap::new(),
+    };
+
+    let value = serde_json::to_value(&header).unwrap();
+    let obj = value.as_object().unwrap();
+    assert!(!obj.contains_key("tag"), "tag should be absent when None");
+    assert!(!obj.contains_key("mode"), "mode should be absent when None");
+}
+
+#[test]
+fn bms_table_data_new_constructor() {
+    let item = ChartItem::new("12".to_string());
+    let data = BmsTableData::new(vec![item]);
+    assert_eq!(data.charts.len(), 1);
+}
+
+#[test]
+fn bms_table_list_new_constructor() {
+    use bms_table::BmsTableInfo;
+    use url::Url;
+
+    let info = BmsTableInfo {
+        name: "Test".into(),
+        symbol: "t".into(),
+        url: Url::parse("https://example.com/table.html").unwrap(),
+        extra: BTreeMap::new(),
+    };
+    let list = BmsTableList::new(vec![info]);
+    assert_eq!(list.entries.len(), 1);
 }

@@ -20,6 +20,7 @@ A Rust library to parse BMS difficulty tables. It can build a complete data stru
 - `BmsTable`: top-level data structure containing `header` and `data`.
 - `BmsTableHeader`: header metadata; unrecognized fields are preserved in `extra`.
 - `BmsTableData`: chart data as an array.
+- `CourseGroup`: recursive course tree supporting arbitrary nesting depth (`Courses` leaf / `SubGroups` branch).
 - `CourseInfo`: course information; supports automatically converting `md5`/`sha256` lists to chart items.
 - `ChartItem`: a chart item; empty strings are deserialized as `Some("")`.
 - `Trophy`: trophy requirements (max miss rate, minimum score rate).

@@ -56,7 +56,7 @@ fn get_web_header_json_value<T: DeserializeOwned>(
         Err(_) => {
             let bmstable_url =
                 BmsTableHtml::extract_url(response_str).context("When extracting bmstable url")?;
-            Ok(HeaderQueryContent::Url(bmstable_url))
+            Ok(HeaderQueryContent::Url(bmstable_url.to_owned()))
         }
     }
 }

@@ -55,9 +55,9 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
         let mut charts: Vec<ChartItem> =
             Vec::with_capacity(raw.charts.len() + raw.md5list.len() + raw.sha256list.len());
 
-        // Process charts and fill missing level with "0"
+        // Process charts and fill missing or null level with "0"
         for mut chart_value in raw.charts {
-            if chart_value.get("level").is_none() {
+            if chart_value.get("level").is_none_or(Value::is_null) {
                 let obj = chart_value
                     .as_object()
                     .ok_or_else(|| SerdeError::custom("chart_value is not an object"))?;
