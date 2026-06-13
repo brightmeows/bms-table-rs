@@ -117,10 +117,13 @@ fn table_urls() -> Vec<Url> {
 /// Fetch result for a single table, tagged with its display name.
 #[derive(Debug)]
 struct FetchResult {
+    /// Display name (table name on success, URL on failure).
     name: String,
+    /// Parsed table or error.
     table: anyhow::Result<BmsTable>,
 }
 
+/// Fetch a single table and wrap the outcome in a [`FetchResult`].
 async fn fetch_single_table(fetcher: &Fetcher, url: &Url) -> FetchResult {
     match fetcher.fetch_table(url.clone()).await {
         Ok(bms_table) => FetchResult {
