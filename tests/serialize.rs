@@ -214,3 +214,26 @@ fn bms_table_list_new_constructor_sets_entries() {
     let list = BmsTableList::new(vec![info]);
     assert_eq!(list.entries.len(), 1);
 }
+
+#[test]
+fn chart_item_default_has_zero_level() {
+    let item = ChartItem::default();
+    assert_eq!(item.level, "0");
+    assert!(item.md5.is_none());
+    assert!(item.title.is_none());
+}
+
+#[test]
+fn bms_table_data_default_is_empty() {
+    let data = BmsTableData::default();
+    assert!(data.charts.is_empty());
+}
+
+#[test]
+fn trophy_new_sets_all_fields() {
+    use bms_table::Trophy;
+    let trophy = Trophy::new("goldmedal".into(), 2.5, 85.0);
+    assert_eq!(trophy.name, "goldmedal");
+    assert!((trophy.missrate - 2.5).abs() <= 1e-12);
+    assert!((trophy.scorerate - 85.0).abs() <= 1e-12);
+}
