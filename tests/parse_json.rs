@@ -438,7 +438,7 @@ fn course_info_nested_lists_deserialized_correctly() {
 }
 
 #[test]
-fn course_info_charts_missing_level_default_to_empty() {
+fn course_info_charts_missing_level_defaults_to_zero() {
     let json_data = r#"{
         "name": "Test Course",
         "constraint": ["grade_mirror"],
@@ -480,7 +480,7 @@ fn course_info_charts_missing_level_default_to_empty() {
             course_info.charts
         );
     };
-    assert_eq!(first_chart.level, "");
+    assert_eq!(first_chart.level, "0");
     assert_eq!(first_chart.title, Some("Test Song".to_string()));
     assert_eq!(first_chart.artist, Some("Test Artist".to_string()));
 
@@ -570,10 +570,10 @@ fn course_info_md5_sha256_both_convert_to_charts() {
     assert_eq!(existing.artist.as_deref(), Some("Test Artist"));
 
     assert_eq!(from_md5.md5.as_deref(), Some("md5_hash_1"));
-    assert_eq!(from_md5.level.as_str(), "");
+    assert_eq!(from_md5.level.as_str(), "0");
 
     assert_eq!(from_sha256.sha256.as_deref(), Some("sha256_hash_1"));
-    assert_eq!(from_sha256.level.as_str(), "");
+    assert_eq!(from_sha256.level.as_str(), "0");
 }
 
 #[test]
@@ -852,13 +852,13 @@ fn chart_data_empty_array_has_no_charts() {
 }
 
 #[test]
-fn chart_item_level_null_defaults_to_empty() {
+fn chart_item_level_null_defaults_to_zero() {
     let data: BmsTableData =
         serde_json::from_value(json!([{ "level": null, "md5": "abc" }])).unwrap();
     let [chart] = data.charts.as_slice() else {
         panic!("expected one chart, got {}", data.charts.len());
     };
-    assert_eq!(chart.level, "");
+    assert_eq!(chart.level, "0");
     assert_eq!(chart.md5.as_deref(), Some("abc"));
 }
 
@@ -872,9 +872,9 @@ fn chart_item_level_zero_converts_to_string() {
 }
 
 #[test]
-fn course_chart_level_null_defaults_to_empty() {
+fn course_chart_level_null_defaults_to_zero() {
     // When a course chart has `"level": null`, it should be treated the same
-    // as when `level` is absent — both default to `""`.
+    // as when `level` is absent — both default to "0" per spec.
     let json_data = r#"{
         "name": "Test Course",
         "constraint": [],
@@ -889,8 +889,8 @@ fn course_chart_level_null_defaults_to_empty() {
     let [c0, c1] = course.charts.as_slice() else {
         panic!("expected two charts, got {}", course.charts.len());
     };
-    assert_eq!(c0.level, "", "null level should default to empty string");
-    assert_eq!(c1.level, "", "missing level should default to empty string");
+    assert_eq!(c0.level, "0", "null level should default to \"0\"");
+    assert_eq!(c1.level, "0", "missing level should default to \"0\"");
 }
 
 #[test]
