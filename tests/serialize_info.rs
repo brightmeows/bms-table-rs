@@ -64,3 +64,26 @@ fn bms_table_list_serializes_as_array() {
     assert_eq!(i0.name.as_str(), ".WAS難易度表");
     assert_eq!(i1.symbol.as_str(), "[F]");
 }
+
+#[test]
+fn bms_table_info_minimal_fields_deserialized_correctly() {
+    let json_data = r#"{
+        "name": "Minimal Table",
+        "symbol": "min",
+        "url": "https://example.com/table.html"
+    }"#;
+    let info: bms_table::BmsTableInfo = serde_json::from_str(json_data).unwrap();
+    assert_eq!(info.name, "Minimal Table");
+    assert_eq!(info.symbol, "min");
+    assert_eq!(info.url.as_str(), "https://example.com/table.html");
+    assert!(
+        info.extra.is_empty(),
+        "extra should be empty for minimal fields"
+    );
+}
+
+#[test]
+fn bms_table_list_empty_array_has_no_entries() {
+    let list: bms_table::BmsTableList = serde_json::from_value(serde_json::json!([])).unwrap();
+    assert!(list.entries.is_empty());
+}

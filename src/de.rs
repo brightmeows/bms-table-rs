@@ -8,21 +8,24 @@ use std::collections::BTreeMap;
 
 use crate::{ChartItem, CourseInfo, Trophy};
 
-/// Field-level deserialization: converts `level_order` numbers or strings to strings,
-/// uses `to_string()` for other types, and returns an empty array by default.
+/// Field-level deserialization: converts `level_order` entries to strings,
+/// accepting only strings and numbers; returns an error for any other type.
+/// Returns an empty array by default.
 pub(crate) fn deserialize_level_order<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let values = Option::<Vec<Value>>::deserialize(deserializer)?.unwrap_or_default();
-    Ok(values
+    values
         .into_iter()
         .map(|v| match v {
-            Value::Number(n) => n.to_string(),
-            Value::String(s) => s,
-            other => other.to_string(),
+            Value::Number(n) => Ok(n.to_string()),
+            Value::String(s) => Ok(s),
+            other => Err(serde::de::Error::custom(format!(
+                "expected string or number for level_order entry, got {other}"
+            ))),
         })
-        .collect())
+        .collect()
 }
 
 /// Internal helper type: used to construct `CourseInfo` more simply and handle md5/sha256 lists.

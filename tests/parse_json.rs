@@ -919,3 +919,55 @@ fn course_group_default_serializes_as_empty_array() {
     let value = serde_json::to_value(&header).unwrap();
     assert_eq!(value.get("course").unwrap(), &json!([]));
 }
+
+#[test]
+fn level_order_with_boolean_reports_error() {
+    let raw = json!({"name":"T","symbol":"t","data_url":"c.json","level_order":["1", true, "3"]});
+    let result: Result<BmsTableHeader, _> = serde_json::from_value(raw);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    let msg = err.to_string();
+    assert!(
+        msg.contains("level_order") || msg.contains("expected string or number"),
+        "msg: {msg}"
+    );
+}
+
+#[test]
+fn level_order_omitted_defaults_to_empty() {
+    let raw = json!({"name":"T","symbol":"t","data_url":"c.json"});
+    let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
+    assert!(h.level_order.is_empty());
+}
+
+#[test]
+fn level_order_with_null_value_reports_error() {
+    let raw = json!({"name":"T","symbol":"t","data_url":"c.json","level_order":["1", null]});
+    let result: Result<BmsTableHeader, _> = serde_json::from_value(raw);
+    assert!(result.is_err());
+}
+
+#[test]
+fn course_group_from_course_info_converts_correctly() {
+    let info = CourseInfo {
+        name: "C1".into(),
+        constraint: vec![],
+        trophy: vec![],
+        charts: vec![],
+    };
+    let group: CourseGroup = info.into();
+    match group {
+        CourseGroup::Courses(v) => {
+            assert_eq!(v.len(), 1);
+            assert_eq!(v.first().unwrap().name, "C1");
+        }
+        _ => panic!("expected Courses variant"),
+    }
+}
+
+#[test]
+fn de_numstring_rejects_boolean_level() {
+    let raw = json!([{ "level": true, "md5": "abc" }]);
+    let result: Result<BmsTableData, _> = serde_json::from_value(raw);
+    assert!(result.is_err());
+}
