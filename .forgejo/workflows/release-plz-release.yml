@@ -28,17 +28,17 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: rust-release-reg-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: rust-reg-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            rust-release-reg-${{ runner.os }}-
+            rust-reg-${{ runner.os }}-
 
       - name: Restore cargo target
         uses: https://data.forgejo.org/actions/cache@v4
         with:
           path: target
-          key: rust-release-target-${{ runner.os }}-${{ env.RUST_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
+          key: rust-target-${{ runner.os }}-${{ env.RUST_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            rust-release-target-${{ runner.os }}-${{ env.RUST_VERSION }}-
+            rust-target-${{ runner.os }}-${{ env.RUST_VERSION }}-
 
       - name: Install release-plz and publish crates
         run: |
