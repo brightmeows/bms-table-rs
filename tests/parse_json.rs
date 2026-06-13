@@ -4,7 +4,26 @@
 
 use bms_table::{BmsTable, BmsTableData, BmsTableHeader, ChartItem, CourseGroup, CourseInfo};
 use serde_json::json;
-use std::collections::BTreeMap;
+
+// Helper constructors — avoid struct-literal syntax because all public types
+// are #[non_exhaustive] to allow future field additions without semver breakage.
+fn hdr(name: &str, symbol: &str, data_url: &str) -> BmsTableHeader {
+    BmsTableHeader::new(name.into(), symbol.into(), data_url.into())
+}
+
+fn hdr_with_levels(name: &str, symbol: &str, data_url: &str, levels: &[&str]) -> BmsTableHeader {
+    let mut h = BmsTableHeader::new(name.into(), symbol.into(), data_url.into());
+    h.level_order = levels.iter().map(|&s| s.to_string()).collect();
+    h
+}
+
+fn data_empty() -> BmsTableData {
+    BmsTableData::new(Vec::new())
+}
+
+fn table(h: BmsTableHeader, d: BmsTableData) -> BmsTable {
+    BmsTable::new(h, d)
+}
 
 // JSON parsing related tests: derived from original lib_tests.rs and fetch_tests.rs
 
@@ -72,7 +91,7 @@ fn build_bms_table_from_json_parses_all_fields() {
     let data_json = sample_chart_json();
     let header: BmsTableHeader = serde_json::from_value(header_json).unwrap();
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
-    let bms_table = BmsTable { header, data };
+    let bms_table = BmsTable::new(header, data);
     assert_eq!(bms_table.header.name, "Test Table");
     assert_eq!(bms_table.header.symbol, "test");
     assert_eq!(bms_table.header.data_url, "charts.json");
@@ -166,7 +185,7 @@ fn build_bms_table_with_empty_fields_keeps_empty_strings() {
     ]);
     let header: BmsTableHeader = serde_json::from_value(header_json).unwrap();
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
-    let bms_table = BmsTable { header, data };
+    let bms_table = BmsTable::new(header, data);
     let [score] = bms_table.data.charts.as_slice() else {
         panic!(
             "expected one chart, got {}: {:?}",
@@ -186,18 +205,9 @@ fn build_bms_table_with_empty_fields_keeps_empty_strings() {
 
 #[test]
 fn bms_table_creation_sets_fields_correctly() {
-    let header = BmsTableHeader {
-        name: "Test Table".to_string(),
-        symbol: "test".to_string(),
-        data_url: "https://example.com/charts.json".to_string(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::Courses(vec![]),
-        level_order: vec!["0".to_string(), "1".to_string()],
-        extra: BTreeMap::new(),
-    };
-    let data = BmsTableData { charts: vec![] };
-    let bms_table = BmsTable { header, data };
+    let mut header = hdr("Test Table", "test", "https://example.com/charts.json");
+    header.level_order = vec!["0".to_string(), "1".to_string()];
+    let bms_table = table(header, data_empty());
 
     assert_eq!(bms_table.header.name, "Test Table");
     assert_eq!(bms_table.header.symbol, "test");
@@ -208,28 +218,11 @@ fn bms_table_creation_sets_fields_correctly() {
 
 #[test]
 fn bms_table_partial_eq_matches_identical_tables() {
-    let header1 = BmsTableHeader {
-        name: "Test Table".to_string(),
-        symbol: "test".to_string(),
-        data_url: "https://example.com/charts.json".to_string(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::Courses(vec![]),
-        level_order: vec!["0".to_string(), "1".to_string()],
-        extra: BTreeMap::new(),
-    };
-    let data1 = BmsTableData { charts: vec![] };
-    let table1 = BmsTable {
-        header: header1.clone(),
-        data: data1,
-    };
+    let mut header1 = hdr("Test Table", "test", "https://example.com/charts.json");
+    header1.level_order = vec!["0".to_string(), "1".to_string()];
+    let table1 = table(header1.clone(), data_empty());
 
-    let header2 = header1;
-    let data2 = BmsTableData { charts: vec![] };
-    let table2 = BmsTable {
-        header: header2,
-        data: data2,
-    };
+    let table2 = table(header1, data_empty());
 
     assert_eq!(table1, table2);
 }
@@ -280,7 +273,7 @@ fn build_bms_table_extra_fields_ignored() {
     ]);
     let header: BmsTableHeader = serde_json::from_value(header_json).unwrap();
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
-    let _ = BmsTable { header, data };
+    let _ = BmsTable::new(header, data);
 }
 
 #[test]
@@ -322,6 +315,7 @@ fn course_info_flat_list_deserialized_correctly() {
             course
         }
         other @ CourseGroup::SubGroups(_) => panic!("expected Courses, got {other:?}"),
+        _ => unreachable!("unexpected CourseGroup variant"),
     };
     assert_eq!(course.name.as_str(), "Course 1");
     assert_eq!(course.md5, vec!["abc123", "def456"]);
@@ -387,6 +381,7 @@ fn course_info_nested_lists_deserialized_correctly() {
                     c
                 }
                 other @ CourseGroup::SubGroups(_) => panic!("expected Courses, got {other:?}"),
+                _ => unreachable!("unexpected CourseGroup variant"),
             };
             let info2 = match g2 {
                 CourseGroup::Courses(courses) => {
@@ -396,10 +391,12 @@ fn course_info_nested_lists_deserialized_correctly() {
                     c
                 }
                 other @ CourseGroup::SubGroups(_) => panic!("expected Courses, got {other:?}"),
+                _ => unreachable!("unexpected CourseGroup variant"),
             };
             (info1, info2)
         }
         other @ CourseGroup::Courses(_) => panic!("expected SubGroups, got {other:?}"),
+        _ => unreachable!("unexpected CourseGroup variant"),
     };
     assert_eq!(course1.name.as_str(), "Course 1");
     assert_eq!(course2.name.as_str(), "Course 2");
@@ -532,16 +529,8 @@ fn course_info_md5_sha256_both_convert_to_charts() {
 
 #[test]
 fn header_json_roundtrip_preserves_fields() {
-    let header = bms_table::BmsTableHeader {
-        name: "Test Table".to_string(),
-        symbol: "test".to_string(),
-        data_url: "charts.json".to_string(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::Courses(vec![]),
-        level_order: vec!["0".to_string(), "1".to_string(), "!i".to_string()],
-        extra: BTreeMap::new(),
-    };
+    let mut header = hdr("Test Table", "test", "charts.json");
+    header.level_order = vec!["0".to_string(), "1".to_string(), "!i".to_string()];
 
     let json = serde_json::to_string(&header).unwrap();
     let parsed: bms_table::BmsTableHeader = serde_json::from_str(&json).unwrap();
@@ -639,16 +628,7 @@ fn roundtrip_course_missing_defaults_to_empty() {
 
 #[test]
 fn level_index_returns_correct_index() {
-    let header = BmsTableHeader {
-        name: "Test".into(),
-        symbol: "t".into(),
-        data_url: "c.json".into(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::default(),
-        level_order: vec!["1".into(), "2".into(), "3".into(), "11+".into()],
-        extra: BTreeMap::new(),
-    };
+    let header = hdr_with_levels("Test", "t", "c.json", &["1", "2", "3", "11+"]);
     assert_eq!(header.level_index("1"), Some(0));
     assert_eq!(header.level_index("2"), Some(1));
     assert_eq!(header.level_index("3"), Some(2));
@@ -657,62 +637,27 @@ fn level_index_returns_correct_index() {
 
 #[test]
 fn level_index_missing_level_returns_none() {
-    let header = BmsTableHeader {
-        name: "Test".into(),
-        symbol: "t".into(),
-        data_url: "c.json".into(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::default(),
-        level_order: vec!["1".into(), "2".into()],
-        extra: BTreeMap::new(),
-    };
+    let header = hdr_with_levels("Test", "t", "c.json", &["1", "2"]);
     assert_eq!(header.level_index("3"), None);
     assert_eq!(header.level_index("0"), None);
 }
 
 #[test]
 fn level_index_empty_level_order_returns_none() {
-    let header = BmsTableHeader {
-        name: "Test".into(),
-        symbol: "t".into(),
-        data_url: "c.json".into(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::default(),
-        level_order: vec![],
-        extra: BTreeMap::new(),
-    };
+    let header = hdr_with_levels("Test", "t", "c.json", &[]);
     assert_eq!(header.level_index("1"), None);
 }
 
 #[test]
 fn effective_tag_returns_tag_when_present() {
-    let header = BmsTableHeader {
-        name: "Test".into(),
-        symbol: "t".into(),
-        data_url: "c.json".into(),
-        tag: Some("★".into()),
-        mode: None,
-        course: CourseGroup::default(),
-        level_order: vec![],
-        extra: BTreeMap::new(),
-    };
+    let mut header = hdr("Test", "t", "c.json");
+    header.tag = Some("★".into());
     assert_eq!(header.effective_tag(), "★");
 }
 
 #[test]
 fn effective_tag_falls_back_to_symbol_when_absent() {
-    let header = BmsTableHeader {
-        name: "Test".into(),
-        symbol: "sl".into(),
-        data_url: "c.json".into(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::default(),
-        level_order: vec![],
-        extra: BTreeMap::new(),
-    };
+    let header = hdr("Test", "sl", "c.json");
     assert_eq!(header.effective_tag(), "sl");
 }
 
@@ -769,16 +714,7 @@ fn chart_item_new_fields_default_to_none() {
 
 #[test]
 fn course_group_flat_into_flattened_returns_courses() {
-    let info = CourseInfo {
-        name: "C1".into(),
-        constraint: vec![],
-        trophy: vec![],
-        charts: vec![],
-        md5: vec![],
-        sha256: vec![],
-        extra: BTreeMap::new(),
-    };
-    let group = CourseGroup::Courses(vec![info]);
+    let group = CourseGroup::Courses(vec![CourseInfo::new("C1".into())]);
     let flat = group.into_flattened();
     assert_eq!(flat.len(), 1);
     assert_eq!(flat.first().unwrap().name, "C1");
@@ -786,27 +722,9 @@ fn course_group_flat_into_flattened_returns_courses() {
 
 #[test]
 fn course_group_nested_into_flattened_returns_courses() {
-    let c1 = CourseInfo {
-        name: "C1".into(),
-        constraint: vec![],
-        trophy: vec![],
-        charts: vec![],
-        md5: vec![],
-        sha256: vec![],
-        extra: BTreeMap::new(),
-    };
-    let c2 = CourseInfo {
-        name: "C2".into(),
-        constraint: vec![],
-        trophy: vec![],
-        charts: vec![],
-        md5: vec![],
-        sha256: vec![],
-        extra: BTreeMap::new(),
-    };
     let group = CourseGroup::SubGroups(vec![
-        CourseGroup::Courses(vec![c1]),
-        CourseGroup::Courses(vec![c2]),
+        CourseGroup::Courses(vec![CourseInfo::new("C1".into())]),
+        CourseGroup::Courses(vec![CourseInfo::new("C2".into())]),
     ]);
     let flat = group.into_flattened();
     assert_eq!(flat.len(), 2);
@@ -822,17 +740,8 @@ fn course_group_empty_into_flattened_returns_empty_vec() {
 
 #[test]
 fn course_group_deeply_nested_into_flattened_returns_courses() {
-    let c1 = CourseInfo {
-        name: "C1".into(),
-        constraint: vec![],
-        trophy: vec![],
-        charts: vec![],
-        md5: vec![],
-        sha256: vec![],
-        extra: BTreeMap::new(),
-    };
     let group = CourseGroup::SubGroups(vec![CourseGroup::SubGroups(vec![CourseGroup::Courses(
-        vec![c1],
+        vec![CourseInfo::new("C1".into())],
     )])]);
     let flat = group.into_flattened();
     assert_eq!(flat.len(), 1);
@@ -900,16 +809,7 @@ fn course_very_deeply_nested_roundtrips_correctly() {
 
 #[test]
 fn course_group_default_serializes_as_empty_array() {
-    let header = BmsTableHeader {
-        name: "T".into(),
-        symbol: "t".into(),
-        data_url: "c.json".into(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::default(),
-        level_order: vec![],
-        extra: BTreeMap::new(),
-    };
+    let header = hdr("T", "t", "c.json");
     let value = serde_json::to_value(&header).unwrap();
     assert_eq!(value.get("course").unwrap(), &json!([]));
 }
@@ -943,16 +843,7 @@ fn level_order_with_null_value_reports_error() {
 
 #[test]
 fn course_group_from_course_info_converts_correctly() {
-    let info = CourseInfo {
-        name: "C1".into(),
-        constraint: vec![],
-        trophy: vec![],
-        charts: vec![],
-        md5: vec![],
-        sha256: vec![],
-        extra: BTreeMap::new(),
-    };
-    let group: CourseGroup = info.into();
+    let group: CourseGroup = CourseInfo::new("C1".into()).into();
     let CourseGroup::Courses(v) = group else {
         panic!("expected Courses variant");
     };
@@ -969,18 +860,13 @@ fn level_field_boolean_reports_error() {
 
 #[test]
 fn course_info_all_charts_merges_three_sources() {
-    let course = CourseInfo {
-        name: "C1".into(),
-        constraint: vec![],
-        trophy: vec![],
-        charts: vec![ChartItem {
-            md5: Some("chart_md5".into()),
-            ..ChartItem::new("1".into())
-        }],
-        md5: vec!["md5_1".into(), "md5_2".into()],
-        sha256: vec!["sha_1".into()],
-        extra: BTreeMap::new(),
-    };
+    let mut chart = ChartItem::new("1".into());
+    chart.md5 = Some("chart_md5".into());
+
+    let mut course = CourseInfo::new("C1".into());
+    course.charts = vec![chart];
+    course.md5 = vec!["md5_1".into(), "md5_2".into()];
+    course.sha256 = vec!["sha_1".into()];
     let all = course.all_charts();
     assert_eq!(all.len(), 4);
     let [chart, md5_1, md5_2, sha_1] = all.as_slice() else {
@@ -1018,15 +904,9 @@ fn course_info_extra_fields_preserved() {
 
 #[test]
 fn course_info_md5_sha256_roundtrip_preserved() {
-    let course = CourseInfo {
-        name: "C1".into(),
-        constraint: vec![],
-        trophy: vec![],
-        charts: vec![],
-        md5: vec!["hash1".into()],
-        sha256: vec!["hash2".into()],
-        extra: BTreeMap::new(),
-    };
+    let mut course = CourseInfo::new("C1".into());
+    course.md5 = vec!["hash1".into()];
+    course.sha256 = vec!["hash2".into()];
     let json_str = serde_json::to_string(&course).unwrap();
     let parsed: CourseInfo = serde_json::from_str(&json_str).unwrap();
     assert_eq!(course, parsed);

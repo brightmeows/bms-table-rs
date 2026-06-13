@@ -4,50 +4,52 @@ use std::collections::BTreeMap;
 use bms_table::{BmsTableInfo, BmsTableList};
 use url::Url;
 
+fn make_info(name: &str, symbol: &str, url: Url) -> BmsTableInfo {
+    BmsTableInfo::new(name.into(), symbol.into(), url)
+}
+
 #[test]
 fn bms_table_list_serializes_as_array() {
-    let item1 = BmsTableInfo {
-        name: ".WAS難易度表".to_string(),
-        symbol: "．".to_string(),
-        url: Url::parse("https://darksabun.club/table/archive/was/").unwrap(),
-        extra: {
-            let mut m = BTreeMap::new();
-            m.insert("tag1".to_string(), serde_json::json!("SP"));
-            m.insert(
-                "tag2".to_string(),
-                serde_json::json!("Self-made Chart Only"),
-            );
-            m.insert(
-                "comment".to_string(),
-                serde_json::json!("Converted by Ribbit"),
-            );
-            m.insert("date".to_string(), serde_json::json!(""));
-            m.insert("state".to_string(), serde_json::json!(""));
-            m.insert("tag_order".to_string(), serde_json::json!("1"));
-            m
-        },
+    let mut item1 = make_info(
+        ".WAS難易度表",
+        "．",
+        Url::parse("https://darksabun.club/table/archive/was/").unwrap(),
+    );
+    item1.extra = {
+        let mut m = BTreeMap::new();
+        m.insert("tag1".to_string(), serde_json::json!("SP"));
+        m.insert(
+            "tag2".to_string(),
+            serde_json::json!("Self-made Chart Only"),
+        );
+        m.insert(
+            "comment".to_string(),
+            serde_json::json!("Converted by Ribbit"),
+        );
+        m.insert("date".to_string(), serde_json::json!(""));
+        m.insert("state".to_string(), serde_json::json!(""));
+        m.insert("tag_order".to_string(), serde_json::json!("1"));
+        m
     };
-    let item2 = BmsTableInfo {
-        name: "[F]".to_string(),
-        symbol: "[F]".to_string(),
-        url: Url::parse("https://bms.hexlataia.xyz/tables/convert/%5BF%5D/table.html").unwrap(),
-        extra: {
-            let mut m = BTreeMap::new();
-            m.insert("tag1".to_string(), serde_json::json!("SP"));
-            m.insert(
-                "tag2".to_string(),
-                serde_json::json!("Self-made Chart Only"),
-            );
-            m.insert("comment".to_string(), serde_json::json!("Converted by Hex"));
-            m.insert("date".to_string(), serde_json::json!(""));
-            m.insert("state".to_string(), serde_json::json!(""));
-            m.insert("tag_order".to_string(), serde_json::json!("1"));
-            m
-        },
+    let mut item2 = make_info(
+        "[F]",
+        "[F]",
+        Url::parse("https://bms.hexlataia.xyz/tables/convert/%5BF%5D/table.html").unwrap(),
+    );
+    item2.extra = {
+        let mut m = BTreeMap::new();
+        m.insert("tag1".to_string(), serde_json::json!("SP"));
+        m.insert(
+            "tag2".to_string(),
+            serde_json::json!("Self-made Chart Only"),
+        );
+        m.insert("comment".to_string(), serde_json::json!("Converted by Hex"));
+        m.insert("date".to_string(), serde_json::json!(""));
+        m.insert("state".to_string(), serde_json::json!(""));
+        m.insert("tag_order".to_string(), serde_json::json!("1"));
+        m
     };
-    let list = BmsTableList {
-        entries: vec![item1, item2],
-    };
+    let list = BmsTableList::new(vec![item1, item2]);
 
     let value = serde_json::to_value(&list).unwrap();
     assert!(value.is_array());

@@ -1,24 +1,18 @@
 //! Unit tests for serialization behavior of header, chart items, and table data
 
-use bms_table::{BmsTableData, BmsTableHeader, BmsTableList, ChartItem, CourseGroup};
+use bms_table::{BmsTableData, BmsTableHeader, BmsTableInfo, BmsTableList, ChartItem, CourseGroup};
 use std::collections::BTreeMap;
 
 #[test]
 fn header_serialize_flattens_extra_fields() {
-    let header = BmsTableHeader {
-        name: "Test Table".to_string(),
-        symbol: "tt".to_string(),
-        data_url: "charts.json".to_string(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::SubGroups(vec![CourseGroup::Courses(vec![])]),
-        level_order: vec!["0".to_string(), "1".to_string()],
-        extra: {
-            let mut m = BTreeMap::new();
-            m.insert("extra_field".to_string(), serde_json::json!("extra_value"));
-            m.insert("another_field".to_string(), serde_json::json!(123));
-            m
-        },
+    let mut header = BmsTableHeader::new("Test Table".into(), "tt".into(), "charts.json".into());
+    header.course = CourseGroup::SubGroups(vec![CourseGroup::Courses(vec![])]);
+    header.level_order = vec!["0".to_string(), "1".to_string()];
+    header.extra = {
+        let mut m = BTreeMap::new();
+        m.insert("extra_field".to_string(), serde_json::json!("extra_value"));
+        m.insert("another_field".to_string(), serde_json::json!(123));
+        m
     };
 
     let value = serde_json::to_value(&header).unwrap();
@@ -45,21 +39,15 @@ fn header_serialize_flattens_extra_fields() {
 
 #[test]
 fn chart_item_serialize_flattens_extra_fields() {
-    let item = ChartItem {
-        level: "1".to_string(),
-        md5: Some("md5hash".to_string()),
-        sha256: None,
-        title: Some("Song Title".to_string()),
-        artist: None,
-        url: Some("http://example.com".to_string()),
-        url_diff: None,
-        comment: None,
-        extra: {
-            let mut m = BTreeMap::new();
-            m.insert("custom_field".to_string(), serde_json::json!("value"));
-            m.insert("rating".to_string(), serde_json::json!(4.5));
-            m
-        },
+    let mut item = ChartItem::new("1".into());
+    item.md5 = Some("md5hash".to_string());
+    item.title = Some("Song Title".to_string());
+    item.url = Some("http://example.com".to_string());
+    item.extra = {
+        let mut m = BTreeMap::new();
+        m.insert("custom_field".to_string(), serde_json::json!("value"));
+        m.insert("rating".to_string(), serde_json::json!(4.5));
+        m
     };
 
     let value = serde_json::to_value(&item).unwrap();
@@ -81,31 +69,7 @@ fn chart_item_serialize_flattens_extra_fields() {
 
 #[test]
 fn bms_table_data_serializes_as_array() {
-    let item1 = ChartItem {
-        level: "0".to_string(),
-        md5: None,
-        sha256: None,
-        title: None,
-        artist: None,
-        url: None,
-        url_diff: None,
-        comment: None,
-        extra: BTreeMap::new(),
-    };
-    let item2 = ChartItem {
-        level: "1".to_string(),
-        md5: None,
-        sha256: None,
-        title: None,
-        artist: None,
-        url: None,
-        url_diff: None,
-        comment: None,
-        extra: BTreeMap::new(),
-    };
-    let data = BmsTableData {
-        charts: vec![item1, item2],
-    };
+    let data = BmsTableData::new(vec![ChartItem::new("0".into()), ChartItem::new("1".into())]);
 
     let value = serde_json::to_value(&data).unwrap();
     assert!(value.is_array());
@@ -125,17 +89,8 @@ fn bms_table_data_serializes_as_array() {
 
 #[test]
 fn optional_fields_are_skipped_when_none() {
-    let item = ChartItem {
-        level: "12".to_string(),
-        md5: Some("hash".to_string()),
-        sha256: None,
-        title: None,
-        artist: None,
-        url: None,
-        url_diff: None,
-        comment: None,
-        extra: BTreeMap::new(),
-    };
+    let mut item = ChartItem::new("12".into());
+    item.md5 = Some("hash".to_string());
     let value = serde_json::to_value(&item).unwrap();
     let obj = value
         .as_object()
@@ -152,16 +107,10 @@ fn optional_fields_are_skipped_when_none() {
 
 #[test]
 fn header_tag_mode_roundtrip_preserves_values() {
-    let header = BmsTableHeader {
-        name: "Table".to_string(),
-        symbol: "t".to_string(),
-        data_url: "d.json".to_string(),
-        tag: Some("★".to_string()),
-        mode: Some("7K".to_string()),
-        course: CourseGroup::Courses(vec![]),
-        level_order: vec!["1".to_string(), "2".to_string()],
-        extra: BTreeMap::new(),
-    };
+    let mut header = BmsTableHeader::new("Table".into(), "t".into(), "d.json".into());
+    header.tag = Some("★".to_string());
+    header.mode = Some("7K".to_string());
+    header.level_order = vec!["1".to_string(), "2".to_string()];
 
     let value = serde_json::to_value(&header).unwrap();
     assert_eq!(value.get("tag").unwrap(), &serde_json::json!("★"));
@@ -174,16 +123,7 @@ fn header_tag_mode_roundtrip_preserves_values() {
 
 #[test]
 fn header_tag_mode_none_skipped_in_serialization() {
-    let header = BmsTableHeader {
-        name: "Table".to_string(),
-        symbol: "t".to_string(),
-        data_url: "d.json".to_string(),
-        tag: None,
-        mode: None,
-        course: CourseGroup::Courses(vec![]),
-        level_order: vec![],
-        extra: BTreeMap::new(),
-    };
+    let header = BmsTableHeader::new("Table".into(), "t".into(), "d.json".into());
 
     let value = serde_json::to_value(&header).unwrap();
     let obj = value.as_object().unwrap();
@@ -200,15 +140,13 @@ fn bms_table_data_new_constructor_sets_charts() {
 
 #[test]
 fn bms_table_list_new_constructor_sets_entries() {
-    use bms_table::BmsTableInfo;
     use url::Url;
 
-    let info = BmsTableInfo {
-        name: "Test".into(),
-        symbol: "t".into(),
-        url: Url::parse("https://example.com/table.html").unwrap(),
-        extra: BTreeMap::new(),
-    };
+    let info = BmsTableInfo::new(
+        "Test".into(),
+        "t".into(),
+        Url::parse("https://example.com/table.html").unwrap(),
+    );
     let list = BmsTableList::new(vec![info]);
     assert_eq!(list.entries.len(), 1);
 }

@@ -22,7 +22,7 @@
 //! let data_json = r#"[]"#;
 //! let header: BmsTableHeader = serde_json::from_str(header_json)?;
 //! let data: BmsTableData = serde_json::from_str(data_json)?;
-//! let table = BmsTable { header, data };
+//! let table = BmsTable::new(header, data);
 //! assert!(table.header.course.flatten().is_empty());
 //! # Ok(())
 //! # }
@@ -48,6 +48,7 @@ use crate::de::{deserialize_level, deserialize_level_order};
 ///
 /// Packs header metadata and chart data together to simplify passing and use in applications.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct BmsTable {
     /// Header information and extra fields
     pub header: BmsTableHeader,
@@ -67,6 +68,7 @@ impl BmsTable {
 ///
 /// Strictly parses common fields and preserves unrecognized fields in `extra` for forward compatibility.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct BmsTableHeader {
     /// Table name, e.g. "Satellite"
     pub name: String,
@@ -158,6 +160,7 @@ impl BmsTableHeader {
 /// objects; the `{ "charts": [...] }` wrapper form is **not** supported.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
+#[non_exhaustive]
 pub struct BmsTableData {
     /// Charts
     pub charts: Vec<ChartItem>,
@@ -192,8 +195,13 @@ impl Default for BmsTableData {
 /// | `"course": [[{...}]]` | `SubGroups(vec![Courses(vec![CourseInfo])])` |
 /// | `"course": [[{...}], [{...}]]` | `SubGroups(vec![Courses(..), Courses(..)])` |
 /// | `"course": [[[{...}]]]` | `SubGroups(vec![SubGroups(vec![Courses(..)])])` |
+///
+/// This enum is `#[non_exhaustive]` — use [`flatten`](CourseGroup::flatten) or
+/// [`into_flattened`](CourseGroup::into_flattened) to access all [`CourseInfo`]
+/// entries without matching on variants directly.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum CourseGroup {
     /// A leaf node containing a list of course entries.
     Courses(Vec<CourseInfo>),
@@ -244,6 +252,7 @@ impl From<CourseInfo> for CourseGroup {
 /// All three are preserved for round-trip fidelity.
 /// Use [`CourseInfo::all_charts`] for a merged view.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct CourseInfo {
     /// Course name, e.g. "Satellite Skill Analyzer 2nd sl0"
     pub name: String,
@@ -322,6 +331,7 @@ impl CourseInfo {
 /// for forward compatibility. This keeps the struct lean while remaining
 /// fully compatible with all real-world tables.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct ChartItem {
     /// Difficulty level, e.g. "0"
     ///
@@ -407,6 +417,7 @@ impl Default for ChartItem {
 ///
 /// Defines conditions to achieve specific trophies, including maximum miss rate and minimum score rate.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct Trophy {
     /// Trophy name, e.g. "silvermedal" or "goldmedal"
     pub name: String,
@@ -434,6 +445,7 @@ impl Trophy {
 /// the core fields; other fields such as `tag1`, `tag2`, `comment`, `date`, `state`, and `tag_order`
 /// are collected into [`extra`](BmsTableInfo::extra).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct BmsTableInfo {
     /// Table name, e.g. ".WAS Difficulty Table"
     pub name: String,
@@ -464,6 +476,7 @@ impl BmsTableInfo {
 /// Transparently serialized as an array: serialization/deserialization behaves the same as the internal `Vec<BmsTableInfo>`, resulting in a JSON array rather than an object.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
+#[non_exhaustive]
 pub struct BmsTableList {
     /// List of entries
     pub entries: Vec<BmsTableInfo>,
@@ -485,11 +498,11 @@ impl BmsTableList {
 /// `<meta name="bmstable" content="...">` or
 /// `<meta property="bmstable" content="...">` in HTML page content.
 ///
-/// The implementation uses the `htmlparser` zero-dependency tokenizer under
-/// the hood, returning a **borrowed** slice of the original input where
-/// possible. Attribute values that contain HTML entities are heap-allocated
-/// during decoding, but the returned `&str` lifetime remains tied to the
-/// original input.
+/// The implementation uses the `htmlparser` tokenizer under the hood,
+/// returning a **borrowed** slice of the original input where possible.
+/// Attribute values containing HTML entities are decoded into the tokenizer's
+/// internal buffer (heap-allocated), which borrows the input string, so the
+/// returned `&str` lifetime remains tied to the original input.
 /// Tag and attribute names are matched case-insensitively.
 /// Content inside HTML comments is naturally ignored by the tokenizer.
 pub struct BmsTableHtml;
