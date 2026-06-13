@@ -34,10 +34,10 @@ pub(crate) fn default_level() -> String {
     "0".to_string()
 }
 
-/// Deserializes a value into a `String`, accepting strings and numbers.
+/// Deserializes a `level` field into a `String`, accepting strings and numbers.
 ///
 /// `null` is treated as missing and returns the spec default `"0"`.
-pub(crate) fn de_numstring<'de, D>(deserializer: D) -> Result<String, D::Error>
+pub(crate) fn deserialize_level<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {

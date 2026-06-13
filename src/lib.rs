@@ -44,7 +44,7 @@ use htmlparser::{Token, Tokenizer};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::de::{de_numstring, deserialize_level_order};
+use crate::de::{deserialize_level, deserialize_level_order};
 
 // Data types
 
@@ -304,7 +304,7 @@ pub struct ChartItem {
     /// difficulty table spec.
     #[serde(
         default = "crate::de::default_level",
-        deserialize_with = "de_numstring"
+        deserialize_with = "deserialize_level"
     )]
     pub level: String,
     /// MD5 hash of the file
