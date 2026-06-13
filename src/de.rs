@@ -2,7 +2,6 @@
 //!
 //! Centralizes all `Deserialize` implementations and helper raw types here, keeping `lib.rs` focused on type definitions.
 
-use serde::de::Error as SerdeError;
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -55,23 +54,16 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
         let mut charts: Vec<ChartItem> =
             Vec::with_capacity(raw.charts.len() + raw.md5list.len() + raw.sha256list.len());
 
-        // Process charts and fill missing or null level with "0"
-        for mut chart_value in raw.charts {
-            if chart_value.get("level").is_none_or(Value::is_null) {
-                let obj = chart_value
-                    .as_object()
-                    .ok_or_else(|| SerdeError::custom("chart_value is not an object"))?;
-                let mut obj = obj.clone();
-                obj.insert("level".to_string(), Value::String("0".to_string()));
-                chart_value = Value::Object(obj);
-            }
+        // Deserialize raw chart values directly — missing or null `level` is
+        // handled by `de_numstring` (returns `""`), so no explicit default needed.
+        for chart_value in raw.charts {
             let item: ChartItem = serde_json::from_value(chart_value)?;
             charts.push(item);
         }
 
-        // md5list -> charts
+        // md5list -> charts (level defaults to empty string)
         charts.extend(raw.md5list.into_iter().map(|md5| ChartItem {
-            level: "0".to_string(),
+            level: String::new(),
             md5: Some(md5),
             sha256: None,
             title: None,
@@ -82,9 +74,9 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             extra: BTreeMap::new(),
         }));
 
-        // sha256list -> charts
+        // sha256list -> charts (level defaults to empty string)
         charts.extend(raw.sha256list.into_iter().map(|sha256| ChartItem {
-            level: "0".to_string(),
+            level: String::new(),
             md5: None,
             sha256: Some(sha256),
             title: None,

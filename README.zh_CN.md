@@ -4,6 +4,7 @@
 [<img alt="crates.io" src="https://img.shields.io/crates/v/bms-table.svg?logo=rust" height="20">](https://crates.io/crates/bms-table)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-bms_table-66c2a5?logo=docs.rs" height="20">](https://docs.rs/bms-table)
 [<img alt="downloads" src="https://img.shields.io/crates/d/bms-table" height="20">](https://crates.io/crates/bms-table)
+[<img alt="license" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg" height="20">](LICENSE)
 
 使用 Rust 实现的 BMS 难度表解析库。支持从表头 JSON 和谱面数据 JSON 构建完整数据结构，覆盖表头、段位、奖杯与谱面条目。
 
@@ -12,7 +13,7 @@
 - 从 HTML `<meta name="bmstable">` 提取表头 JSON 地址。
 - 解析表头 JSON 为 `BmsTableHeader`，未识别字段保留到 `extra`。
 - 解析谱面数据为 `BmsTableData`，支持 `ChartItem` 数组。
-- 将段位中的 `md5`/`sha256` 列表自动转换为 `ChartItem`，缺失 `level` 时补为 `"0"`。
+- 将段位中的 `md5`/`sha256` 列表自动转换为 `ChartItem`，`level` 缺省为 `""`。
 
 ## API 概览
 

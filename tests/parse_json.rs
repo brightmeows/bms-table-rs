@@ -480,7 +480,7 @@ fn test_course_info_deserialize_charts_with_default_level() {
             course_info.charts
         );
     };
-    assert_eq!(first_chart.level, "0");
+    assert_eq!(first_chart.level, "");
     assert_eq!(first_chart.title, Some("Test Song".to_string()));
     assert_eq!(first_chart.artist, Some("Test Artist".to_string()));
 
@@ -570,10 +570,10 @@ fn test_course_info_deserialize_md5_and_sha256_to_charts() {
     assert_eq!(existing.artist.as_deref(), Some("Test Artist"));
 
     assert_eq!(from_md5.md5.as_deref(), Some("md5_hash_1"));
-    assert_eq!(from_md5.level.as_str(), "0");
+    assert_eq!(from_md5.level.as_str(), "");
 
     assert_eq!(from_sha256.sha256.as_deref(), Some("sha256_hash_1"));
-    assert_eq!(from_sha256.level.as_str(), "0");
+    assert_eq!(from_sha256.level.as_str(), "");
 }
 
 #[test]
@@ -872,9 +872,9 @@ fn chart_item_level_numeric_zero() {
 }
 
 #[test]
-fn course_chart_level_null_defaults_to_zero() {
-    // When a course chart has `"level": null`, it should be treated as missing
-    // and filled with `"0"` (same as when `level` is absent).
+fn course_chart_level_null_defaults_to_empty() {
+    // When a course chart has `"level": null`, it should be treated the same
+    // as when `level` is absent — both default to `""`.
     let json_data = r#"{
         "name": "Test Course",
         "constraint": [],
@@ -889,8 +889,8 @@ fn course_chart_level_null_defaults_to_zero() {
     let [c0, c1] = course.charts.as_slice() else {
         panic!("expected two charts, got {}", course.charts.len());
     };
-    assert_eq!(c0.level, "0", "null level should default to '0'");
-    assert_eq!(c1.level, "0", "missing level should default to '0'");
+    assert_eq!(c0.level, "", "null level should default to empty string");
+    assert_eq!(c1.level, "", "missing level should default to empty string");
 }
 
 #[test]

@@ -13,7 +13,7 @@ A Rust library to parse BMS difficulty tables. It can build a complete data stru
 - Extract the header JSON URL from HTML `<meta name="bmstable">`.
 - Parse the header JSON into `BmsTableHeader`; unrecognized fields are preserved in `extra`.
 - Parse chart data into `BmsTableData`, supporting a plain array of `ChartItem` structure.
-- Automatically convert `md5`/`sha256` lists in courses to `ChartItem`; when `level` is missing, fill with `"0"`.
+- Automatically convert `md5`/`sha256` lists in courses to `ChartItem`; `level` defaults to `""`.
 
 ## API Overview
 
