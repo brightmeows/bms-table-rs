@@ -84,9 +84,9 @@ pub struct BmsTableHeader {
     ///
     /// Supports flat arrays (`"course": [{...}]`) and arbitrarily nested arrays
     /// (`"course": [[{...}]]`, `"course": [[{...}], [{...}]]`, etc.).
-    /// Each top-level array element is a [`CourseGroup`].
+    /// Deserialized as a [`CourseGroup`] tree.
     #[serde(default)]
-    pub course: Vec<CourseGroup>,
+    pub course: CourseGroup,
     /// Difficulty level order containing numbers and strings
     #[serde(default, deserialize_with = "deserialize_level_order")]
     pub level_order: Vec<String>,
@@ -105,7 +105,7 @@ impl BmsTableHeader {
             data_url,
             tag: None,
             mode: None,
-            course: Vec::new(),
+            course: CourseGroup::Courses(Vec::new()),
             level_order: Vec::new(),
             extra: BTreeMap::new(),
         }
@@ -113,13 +113,14 @@ impl BmsTableHeader {
 
     /// Returns `true` if the course list contains no entries.
     #[must_use]
-    pub const fn course_is_empty(&self) -> bool {
-        self.course.is_empty()
+    pub fn course_is_empty(&self) -> bool {
+        self.flatten_courses().is_empty()
     }
 
     /// Flattens all [`CourseInfo`] references regardless of nesting depth.
+    #[must_use]
     pub fn flatten_courses(&self) -> Vec<&CourseInfo> {
-        self.course.iter().flat_map(CourseGroup::flatten).collect()
+        self.course.flatten()
     }
 }
 
@@ -133,43 +134,49 @@ pub struct BmsTableData {
     pub charts: Vec<ChartItem>,
 }
 
-/// Recursive course group supporting arbitrary nesting depth.
+/// Recursive course tree supporting arbitrary nesting depth.
 ///
-/// - [`Flat`][CourseGroup::Flat] — a single [`CourseInfo`] object
-/// - [`Nested`][CourseGroup::Nested] — a sub-group of courses (arbitrary nesting depth)
+/// - [`Courses`][CourseGroup::Courses] — a leaf node containing a list of [`CourseInfo`] entries
+/// - [`SubGroups`][CourseGroup::SubGroups] — a branch node containing nested sub-groups
 ///
-/// Together with `Vec<CourseGroup>` as the `course` field type, this preserves
+/// Together with `CourseGroup` as the `course` field type, this preserves
 /// the original JSON nesting shape round-trip:
 ///
 /// | JSON | Rust |
 /// |---|---|
-/// | `"course": []` | `vec![]` |
-/// | `"course": [{...}]` | `vec![Flat(CourseInfo)]` |
-/// | `"course": [[{...}]]` | `vec![Nested(vec![Flat(CourseInfo)])]` |
-/// | `"course": [[{...}], [{...}]]` | `vec![Nested(vec![Flat(..)]), Nested(vec![Flat(..)])]` |
-/// | `"course": [[[{...}]]]` | `vec![Nested(vec![Nested(vec![Flat(..)])])]` |
+/// | `"course": []` | `Courses(vec![])` |
+/// | `"course": [{...}]` | `Courses(vec![CourseInfo])` |
+/// | `"course": [[{...}]]` | `SubGroups(vec![Courses(vec![CourseInfo])])` |
+/// | `"course": [[{...}], [{...}]]` | `SubGroups(vec![Courses(..), Courses(..)])` |
+/// | `"course": [[[{...}]]]` | `SubGroups(vec![SubGroups(vec![Courses(..)])])` |
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum CourseGroup {
-    /// A single course entry (JSON object).
-    Flat(CourseInfo),
-    /// A sub-group of courses (JSON array), enabling arbitrary nesting depth.
-    Nested(Vec<CourseGroup>),
+    /// A leaf node containing a list of course entries.
+    Courses(Vec<CourseInfo>),
+    /// A branch node containing nested sub-groups.
+    SubGroups(Vec<CourseGroup>),
+}
+
+impl Default for CourseGroup {
+    fn default() -> Self {
+        Self::Courses(Vec::new())
+    }
 }
 
 impl CourseGroup {
     /// Flattens all [`CourseInfo`] references in this sub-tree.
     pub fn flatten(&self) -> Vec<&CourseInfo> {
         match self {
-            Self::Flat(info) => vec![info],
-            Self::Nested(v) => v.iter().flat_map(CourseGroup::flatten).collect(),
+            Self::Courses(v) => v.iter().collect(),
+            Self::SubGroups(v) => v.iter().flat_map(CourseGroup::flatten).collect(),
         }
     }
 }
 
 impl From<CourseInfo> for CourseGroup {
     fn from(info: CourseInfo) -> Self {
-        Self::Flat(info)
+        Self::Courses(vec![info])
     }
 }
 

@@ -57,25 +57,22 @@ fn test_build_bms_table_from_json() {
     assert_eq!(bms_table.data.charts.len(), 1);
 
     // Input is `"course": [[{...}]]` — nested structure
-    let course = {
-        let [group] = bms_table.header.course.as_slice() else {
-            panic!(
-                "expected one group, got {} groups",
-                bms_table.header.course.len()
-            );
-        };
-        match group {
-            CourseGroup::Nested(courses) => {
-                let [course] = courses.as_slice() else {
-                    panic!("expected one course, got {}: {:?}", courses.len(), courses);
-                };
-                match course {
-                    CourseGroup::Flat(info) => info,
-                    other => panic!("expected Flat, got {:?}", other),
+    let course = match &bms_table.header.course {
+        CourseGroup::SubGroups(groups) => {
+            let [group] = groups.as_slice() else {
+                panic!("expected one group, got {}: {:?}", groups.len(), groups);
+            };
+            match group {
+                CourseGroup::Courses(courses) => {
+                    let [course] = courses.as_slice() else {
+                        panic!("expected one course, got {}: {:?}", courses.len(), courses);
+                    };
+                    course
                 }
+                other => panic!("expected Courses, got {:?}", other),
             }
-            other => panic!("expected Nested, got {:?}", other),
         }
+        other => panic!("expected SubGroups, got {:?}", other),
     };
     assert_eq!(course.name, "Test Course");
     assert_eq!(course.constraint, vec!["grade_mirror"]);
@@ -198,7 +195,7 @@ fn test_bms_table_creation() {
         data_url: "https://example.com/charts.json".to_string(),
         tag: None,
         mode: None,
-        course: vec![],
+        course: CourseGroup::Courses(vec![]),
         level_order: vec!["0".to_string(), "1".to_string()],
         extra: BTreeMap::new(),
     };
@@ -220,7 +217,7 @@ fn test_bms_table_partial_eq() {
         data_url: "https://example.com/charts.json".to_string(),
         tag: None,
         mode: None,
-        course: vec![],
+        course: CourseGroup::Courses(vec![]),
         level_order: vec!["0".to_string(), "1".to_string()],
         extra: BTreeMap::new(),
     };
@@ -322,19 +319,15 @@ fn test_bms_table_header_deserialize_vec_course_info() {
     assert_eq!(header.symbol, "test");
     assert_eq!(header.data_url, "score.json");
 
-    // Input is `"course": [{...}]` — flat structure
-    let course = {
-        let [node] = header.course.as_slice() else {
-            panic!(
-                "expected one course node, got {}: {:?}",
-                header.course.len(),
-                header.course
-            );
-        };
-        match node {
-            CourseGroup::Flat(info) => info,
-            other => panic!("expected Flat, got {:?}", other),
+    // Input is `"course": [{...}]` — flat structure → Courses leaf with one element
+    let course = match &header.course {
+        CourseGroup::Courses(courses) => {
+            let [course] = courses.as_slice() else {
+                panic!("expected one course, got {}: {:?}", courses.len(), courses);
+            };
+            course
         }
+        other => panic!("expected Courses, got {:?}", other),
     };
     assert_eq!(course.name.as_str(), "Course 1");
     assert_eq!(course.charts.len(), 2);
@@ -396,39 +389,32 @@ fn test_bms_table_header_deserialize_vec_vec_course_info() {
     assert_eq!(header.data_url, "score.json");
 
     // Input is `"course": [[{...}], [{...}]]` — nested with two groups
-    let (course1, course2) = {
-        let [g1, g2] = header.course.as_slice() else {
-            panic!(
-                "expected two groups, got {}: {:?}",
-                header.course.len(),
-                header.course
-            );
-        };
-        let info1 = match g1 {
-            CourseGroup::Nested(courses) => {
-                let [c] = courses.as_slice() else {
-                    panic!("expected one course, got {}: {:?}", courses.len(), courses);
-                };
-                match c {
-                    CourseGroup::Flat(info) => info,
-                    _ => panic!("expected Flat"),
+    let (course1, course2) = match &header.course {
+        CourseGroup::SubGroups(groups) => {
+            let [g1, g2] = groups.as_slice() else {
+                panic!("expected two groups, got {}: {:?}", groups.len(), groups);
+            };
+            let info1 = match g1 {
+                CourseGroup::Courses(courses) => {
+                    let [c] = courses.as_slice() else {
+                        panic!("expected one course, got {}: {:?}", courses.len(), courses);
+                    };
+                    c
                 }
-            }
-            other => panic!("expected Nested, got {:?}", other),
-        };
-        let info2 = match g2 {
-            CourseGroup::Nested(courses) => {
-                let [c] = courses.as_slice() else {
-                    panic!("expected one course, got {}: {:?}", courses.len(), courses);
-                };
-                match c {
-                    CourseGroup::Flat(info) => info,
-                    _ => panic!("expected Flat"),
+                other => panic!("expected Courses, got {:?}", other),
+            };
+            let info2 = match g2 {
+                CourseGroup::Courses(courses) => {
+                    let [c] = courses.as_slice() else {
+                        panic!("expected one course, got {}: {:?}", courses.len(), courses);
+                    };
+                    c
                 }
-            }
-            other => panic!("expected Nested, got {:?}", other),
-        };
-        (info1, info2)
+                other => panic!("expected Courses, got {:?}", other),
+            };
+            (info1, info2)
+        }
+        other => panic!("expected SubGroups, got {:?}", other),
     };
     assert_eq!(course1.name.as_str(), "Course 1");
     assert_eq!(course2.name.as_str(), "Course 2");
@@ -602,7 +588,7 @@ fn test_json_serialization() {
         data_url: "charts.json".to_string(),
         tag: None,
         mode: None,
-        course: vec![],
+        course: CourseGroup::Courses(vec![]),
         level_order: vec!["0".to_string(), "1".to_string(), "!i".to_string()],
         extra: BTreeMap::new(),
     };
@@ -610,7 +596,7 @@ fn test_json_serialization() {
     let json = serde_json::to_string(&header).unwrap();
     let parsed: bms_table::BmsTableHeader = serde_json::from_str(&json).unwrap();
     assert_eq!(header, parsed);
-    assert!(parsed.course.is_empty());
+    assert!(parsed.course_is_empty());
 }
 
 // Round-trip tests for CourseGroup nesting shape preservation.
@@ -629,6 +615,7 @@ fn make_course_info(name: &str) -> serde_json::Value {
 fn roundtrip_course_empty_flat() {
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":[],"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
+    assert!(matches!(&h.course, CourseGroup::Courses(v) if v.is_empty()));
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], json!([]));
 }
@@ -638,9 +625,8 @@ fn roundtrip_course_single_flat() {
     let course = json!([make_course_info("C1")]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    // Verify shape: top-level Vec with one Flat(CourseInfo)
-    assert_eq!(h.course.len(), 1);
-    assert!(matches!(&h.course[0], CourseGroup::Flat(_)));
+    // Verify shape: Courses leaf with one element
+    assert!(matches!(&h.course, CourseGroup::Courses(v) if v.len() == 1));
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], course);
 }
@@ -650,9 +636,7 @@ fn roundtrip_course_multi_flat() {
     let course = json!([make_course_info("C1"), make_course_info("C2")]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    assert_eq!(h.course.len(), 2);
-    assert!(matches!(&h.course[0], CourseGroup::Flat(_)));
-    assert!(matches!(&h.course[1], CourseGroup::Flat(_)));
+    assert!(matches!(&h.course, CourseGroup::Courses(v) if v.len() == 2));
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], course);
 }
@@ -662,8 +646,7 @@ fn roundtrip_course_single_nested() {
     let course = json!([[make_course_info("C1")]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    assert_eq!(h.course.len(), 1);
-    assert!(matches!(&h.course[0], CourseGroup::Nested(_)));
+    assert!(matches!(&h.course, CourseGroup::SubGroups(g) if g.len() == 1));
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], course);
 }
@@ -673,9 +656,7 @@ fn roundtrip_course_multi_nested() {
     let course = json!([[make_course_info("C1")], [make_course_info("C2")]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    assert_eq!(h.course.len(), 2);
-    assert!(matches!(&h.course[0], CourseGroup::Nested(_)));
-    assert!(matches!(&h.course[1], CourseGroup::Nested(_)));
+    assert!(matches!(&h.course, CourseGroup::SubGroups(g) if g.len() == 2));
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], course);
 }
@@ -685,8 +666,9 @@ fn roundtrip_course_empty_nested() {
     let course = json!([[]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    assert_eq!(h.course.len(), 1);
-    assert!(matches!(&h.course[0], CourseGroup::Nested(v) if v.is_empty()));
+    assert!(
+        matches!(&h.course, CourseGroup::SubGroups(g) if matches!(&g[0], CourseGroup::Courses(v) if v.is_empty()))
+    );
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], course);
 }
@@ -696,7 +678,7 @@ fn roundtrip_course_deeply_nested() {
     let course = json!([[[make_course_info("C1")]]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    assert_eq!(h.course.len(), 1);
+    assert!(matches!(&h.course, CourseGroup::SubGroups(g) if g.len() == 1));
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], course);
 }
@@ -706,5 +688,5 @@ fn roundtrip_course_missing_defaults_to_empty() {
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(h.course_is_empty());
-    assert_eq!(h.course.len(), 0);
+    assert!(matches!(&h.course, CourseGroup::Courses(v) if v.is_empty()));
 }
