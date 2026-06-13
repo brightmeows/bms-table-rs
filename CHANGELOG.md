@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.13.0](https://codeberg.org/brightmeows/bms-table-rs/compare/v0.12.1...v0.13.0) - 2026-06-13
+
+### Bug Fixes
+
+- wrap release-plz config keys in [workspace] section
+- remove invalid [package] section from release-plz.toml
+- doc error ([#58](https://codeberg.org/brightmeows/bms-table-rs/pulls/58))
+
+### CI
+
+- add pre-commit hooks and AGENTS.md from bmsrs
+- add release-plz config and Codeberg CI workflows
+- add coverage workflow and unify toolchain versions ([#65](https://codeberg.org/brightmeows/bms-table-rs/pulls/65))
+
+### Documentation
+
+- fix stale method name in readmes
+- migrate badges and links from GitHub to Codeberg
+
+### Other
+
+- *(deps)* remove unused tokio test-util feature, enable sync explicitly
+- *(deps)* bump scraper to 0.27, clean deny.toml
+- *(deps)* bump reqwest from 0.13.3 to 0.13.4 ([#72](https://codeberg.org/brightmeows/bms-table-rs/pulls/72))
+- *(deps)* bump serde_json from 1.0.149 to 1.0.150 ([#71](https://codeberg.org/brightmeows/bms-table-rs/pulls/71))
+- *(deps)* bump tokio from 1.52.2 to 1.52.3 ([#69](https://codeberg.org/brightmeows/bms-table-rs/pulls/69))
+- *(deps)* bump tokio from 1.52.1 to 1.52.2 ([#68](https://codeberg.org/brightmeows/bms-table-rs/pulls/68))
+- *(deps)* bump reqwest from 0.13.2 to 0.13.3 ([#64](https://codeberg.org/brightmeows/bms-table-rs/pulls/64))
+- *(deps)* bump tokio from 1.52.0 to 1.52.1 ([#63](https://codeberg.org/brightmeows/bms-table-rs/pulls/63))
+- *(deps)* bump tokio from 1.51.1 to 1.52.0 ([#62](https://codeberg.org/brightmeows/bms-table-rs/pulls/62))
+- *(deps)* bump tokio from 1.51.0 to 1.51.1 ([#61](https://codeberg.org/brightmeows/bms-table-rs/pulls/61))
+- *(deps)* bump tokio from 1.50.0 to 1.51.0 ([#60](https://codeberg.org/brightmeows/bms-table-rs/pulls/60))
+- *(deps)* bump scraper from 0.25.0 to 0.26.0 ([#59](https://codeberg.org/brightmeows/bms-table-rs/pulls/59))
+- *(deps)* Update Rust crate tokio to v1.50.0 ([#55](https://codeberg.org/brightmeows/bms-table-rs/pulls/55))
+- *(deps)* Update Rust crate anyhow to v1.0.102 ([#54](https://codeberg.org/brightmeows/bms-table-rs/pulls/54))
+- *(deps)* Update Rust crate reqwest to v0.13.2 ([#53](https://codeberg.org/brightmeows/bms-table-rs/pulls/53))
+- *(deps)* Update Rust crate anyhow to v1.0.101 ([#52](https://codeberg.org/brightmeows/bms-table-rs/pulls/52))
+
+### Refactoring
+
+- *(header)* keep only new constructor on BmsTableHeader
+- *(course-group)* rename Flat/Nested to Courses/SubGroups, change course to CourseGroup
+- rename BmsTableHtml::try_extract_bmstable_from_html to extract_url
+- *(examples)* remove dead code and suppress cross-example warnings
+- clean up module visibility, add constructors, simplify CourseInfo deser
+- refactor!(header): replace Vec<Vec<CourseInfo>> with recursive Vec<CourseGroup>
+- *(api)* add tag/mode to header, drop subtitle/subartist from chart
+- [**breaking**] remove fetcher, flatten crate, drop feature flags
 ## [0.12.1](https://github.com/MiyakoMeow/bms-table-rs/compare/v0.12.0...v0.12.1) - 2026-01-20
 
 
