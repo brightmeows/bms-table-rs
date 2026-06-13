@@ -23,7 +23,7 @@
 - `ChartItem`：谱面条目；空字符串在反序列化时保留为 `Some("")`。
 - `Trophy`：奖杯要求（最大 miss 率、最低得分率）。
 - `BmsTableInfo` / `BmsTableList`：难度表列表 JSON 的数据类型。
-- `BmsTableHtml`：HTML 解析操作，详见 `try_extract_bmstable_from_html`。
+- `BmsTableHtml`：HTML 解析操作，详见 `extract_url`。
 
 ## 示例程序
 

@@ -24,7 +24,7 @@ A Rust library to parse BMS difficulty tables. It can build a complete data stru
 - `ChartItem`: a chart item; empty strings are deserialized as `Some("")`.
 - `Trophy`: trophy requirements (max miss rate, minimum score rate).
 - `BmsTableInfo` / `BmsTableList`: data types for difficulty table list JSON.
-- `BmsTableHtml`: HTML parsing operations; see `try_extract_bmstable_from_html`.
+- `BmsTableHtml`: HTML parsing operations; see `extract_url`.
 
 ## Examples
 
