@@ -204,7 +204,7 @@ fn test_bms_table_creation() {
 
     assert_eq!(bms_table.header.name, "Test Table");
     assert_eq!(bms_table.header.symbol, "test");
-    assert!(bms_table.header.course_is_empty());
+    assert!(bms_table.header.course.flatten().is_empty());
     assert_eq!(bms_table.data.charts.len(), 0);
     assert_eq!(bms_table.header.level_order.len(), 2);
 }
@@ -243,7 +243,6 @@ fn test_chart_item_numeric_fields_to_string() {
         {
             "level": 0,
             "id": 1,
-            // Convert numeric fields to strings to match current deserialization behavior
             "md5": "12345",
             "sha256": "67890",
             "title": "987",
@@ -275,13 +274,11 @@ fn test_build_bms_table_invalid_json() {
         "name": "Test Table",
         "symbol": "test",
         "data_url": "charts.json"
-        // Missing required fields
     });
     let data_json = json!([
         {
             "level": "1",
             "id": 1
-            // Missing required fields
         }
     ]);
     let header: BmsTableHeader = serde_json::from_value(header_json).unwrap();
@@ -581,7 +578,6 @@ fn test_course_info_deserialize_md5_and_sha256_to_charts() {
 
 #[test]
 fn test_json_serialization() {
-    // Test serialization/deserialization of BmsTableHeader from the crate
     let header = bms_table::BmsTableHeader {
         name: "Test Table".to_string(),
         symbol: "test".to_string(),
@@ -596,12 +592,9 @@ fn test_json_serialization() {
     let json = serde_json::to_string(&header).unwrap();
     let parsed: bms_table::BmsTableHeader = serde_json::from_str(&json).unwrap();
     assert_eq!(header, parsed);
-    assert!(parsed.course_is_empty());
+    assert!(parsed.course.flatten().is_empty());
 }
 
-// Round-trip tests for CourseGroup nesting shape preservation.
-// Uses fully-expanded CourseInfo JSON (with `charts` instead of `md5`)
-// to avoid normalization during deserialization.
 fn make_course_info(name: &str) -> serde_json::Value {
     json!({
         "name": name,
@@ -625,7 +618,6 @@ fn roundtrip_course_single_flat() {
     let course = json!([make_course_info("C1")]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    // Verify shape: Courses leaf with one element
     assert!(matches!(&h.course, CourseGroup::Courses(v) if v.len() == 1));
     let out = serde_json::to_value(&h).unwrap();
     assert_eq!(out["course"], course);
@@ -687,6 +679,6 @@ fn roundtrip_course_deeply_nested() {
 fn roundtrip_course_missing_defaults_to_empty() {
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    assert!(h.course_is_empty());
+    assert!(h.course.flatten().is_empty());
     assert!(matches!(&h.course, CourseGroup::Courses(v) if v.is_empty()));
 }
