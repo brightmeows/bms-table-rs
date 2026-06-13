@@ -79,10 +79,6 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             url: None,
             url_diff: None,
             comment: None,
-            url_pack: None,
-            name_pack: None,
-            org_md5: None,
-            mode: None,
             extra: BTreeMap::new(),
         }));
 
@@ -96,10 +92,6 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
             url: None,
             url_diff: None,
             comment: None,
-            url_pack: None,
-            name_pack: None,
-            org_md5: None,
-            mode: None,
             extra: BTreeMap::new(),
         }));
 
@@ -112,20 +104,21 @@ impl TryFrom<CourseInfoRaw> for CourseInfo {
     }
 }
 
-/// General helper to deserialize empty strings into `None`-like behavior.
+/// Deserializes a value into a `String`, accepting strings and numbers.
+///
+/// `null` is treated as missing (returns empty string) for leniency.
 pub(crate) fn de_numstring<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
     let opt = Option::<Value>::deserialize(deserializer)?;
     let Some(value) = opt else {
-        return Err(serde::de::Error::custom(
-            "expected string or number, found None",
-        ));
+        return Ok(String::new());
     };
     match value {
         Value::String(s) => Ok(s),
         Value::Number(n) => Ok(n.to_string()),
+        Value::Null => Ok(String::new()),
         other => Err(serde::de::Error::custom(format!(
             "expected string or number, got {}",
             other

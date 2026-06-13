@@ -610,7 +610,7 @@ fn roundtrip_course_empty_flat() {
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(matches!(&h.course, CourseGroup::Courses(v) if v.is_empty()));
     let out = serde_json::to_value(&h).unwrap();
-    assert_eq!(out["course"], json!([]));
+    assert_eq!(out.get("course").unwrap(), &json!([]));
 }
 
 #[test]
@@ -620,7 +620,7 @@ fn roundtrip_course_single_flat() {
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(matches!(&h.course, CourseGroup::Courses(v) if v.len() == 1));
     let out = serde_json::to_value(&h).unwrap();
-    assert_eq!(out["course"], course);
+    assert_eq!(out.get("course").unwrap(), &course);
 }
 
 #[test]
@@ -630,7 +630,7 @@ fn roundtrip_course_multi_flat() {
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(matches!(&h.course, CourseGroup::Courses(v) if v.len() == 2));
     let out = serde_json::to_value(&h).unwrap();
-    assert_eq!(out["course"], course);
+    assert_eq!(out.get("course").unwrap(), &course);
 }
 
 #[test]
@@ -640,7 +640,7 @@ fn roundtrip_course_single_nested() {
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(matches!(&h.course, CourseGroup::SubGroups(g) if g.len() == 1));
     let out = serde_json::to_value(&h).unwrap();
-    assert_eq!(out["course"], course);
+    assert_eq!(out.get("course").unwrap(), &course);
 }
 
 #[test]
@@ -650,7 +650,7 @@ fn roundtrip_course_multi_nested() {
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(matches!(&h.course, CourseGroup::SubGroups(g) if g.len() == 2));
     let out = serde_json::to_value(&h).unwrap();
-    assert_eq!(out["course"], course);
+    assert_eq!(out.get("course").unwrap(), &course);
 }
 
 #[test]
@@ -658,11 +658,13 @@ fn roundtrip_course_empty_nested() {
     let course = json!([[]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
-    assert!(
-        matches!(&h.course, CourseGroup::SubGroups(g) if matches!(&g[0], CourseGroup::Courses(v) if v.is_empty()))
-    );
+    let g = match &h.course {
+        CourseGroup::SubGroups(g) => g,
+        _ => panic!("expected SubGroups"),
+    };
+    assert!(matches!(&g.first().unwrap(), CourseGroup::Courses(v) if v.is_empty()));
     let out = serde_json::to_value(&h).unwrap();
-    assert_eq!(out["course"], course);
+    assert_eq!(out.get("course").unwrap(), &course);
 }
 
 #[test]
@@ -672,7 +674,7 @@ fn roundtrip_course_deeply_nested() {
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(matches!(&h.course, CourseGroup::SubGroups(g) if g.len() == 1));
     let out = serde_json::to_value(&h).unwrap();
-    assert_eq!(out["course"], course);
+    assert_eq!(out.get("course").unwrap(), &course);
 }
 
 #[test]
@@ -752,12 +754,12 @@ fn chart_item_new_fields_deserialize() {
     };
     assert_eq!(chart.comment.as_deref(), Some("hard chart"));
     assert_eq!(
-        chart.url_pack.as_deref(),
-        Some("https://example.com/pack.zip")
+        chart.extra.get("url_pack"),
+        Some(&json!("https://example.com/pack.zip"))
     );
-    assert_eq!(chart.name_pack.as_deref(), Some("Example Pack"));
-    assert_eq!(chart.org_md5.as_deref(), Some("def123"));
-    assert_eq!(chart.mode.as_deref(), Some("7K"));
+    assert_eq!(chart.extra.get("name_pack"), Some(&json!("Example Pack")));
+    assert_eq!(chart.extra.get("org_md5"), Some(&json!("def123")));
+    assert_eq!(chart.extra.get("mode"), Some(&json!("7K")));
     assert_eq!(
         chart.extra.get("custom_extra"),
         Some(&json!("still in extra"))
@@ -777,10 +779,10 @@ fn chart_item_new_fields_default_to_none() {
         panic!("expected one chart, got {}", data.charts.len());
     };
     assert!(chart.comment.is_none());
-    assert!(chart.url_pack.is_none());
-    assert!(chart.name_pack.is_none());
-    assert!(chart.org_md5.is_none());
-    assert!(chart.mode.is_none());
+    assert!(!chart.extra.contains_key("url_pack"));
+    assert!(!chart.extra.contains_key("name_pack"));
+    assert!(!chart.extra.contains_key("org_md5"));
+    assert!(!chart.extra.contains_key("mode"));
 }
 
 #[test]
@@ -794,7 +796,7 @@ fn course_group_into_flatten_flat() {
     let group = CourseGroup::Courses(vec![info]);
     let flat = group.into_flatten();
     assert_eq!(flat.len(), 1);
-    assert_eq!(flat[0].name, "C1");
+    assert_eq!(flat.first().unwrap().name, "C1");
 }
 
 #[test]
@@ -817,8 +819,8 @@ fn course_group_into_flatten_nested() {
     ]);
     let flat = group.into_flatten();
     assert_eq!(flat.len(), 2);
-    assert_eq!(flat[0].name, "C1");
-    assert_eq!(flat[1].name, "C2");
+    assert_eq!(flat.first().unwrap().name, "C1");
+    assert_eq!(flat.get(1).unwrap().name, "C2");
 }
 
 #[test]
@@ -840,5 +842,31 @@ fn course_group_into_flatten_deeply_nested() {
     )])]);
     let flat = group.into_flatten();
     assert_eq!(flat.len(), 1);
-    assert_eq!(flat[0].name, "C1");
+    assert_eq!(flat.first().unwrap().name, "C1");
+}
+
+#[test]
+fn empty_chart_data_array() {
+    let data: BmsTableData = serde_json::from_value(json!([])).unwrap();
+    assert!(data.charts.is_empty());
+}
+
+#[test]
+fn chart_item_level_null_defaults_to_empty() {
+    let data: BmsTableData =
+        serde_json::from_value(json!([{ "level": null, "md5": "abc" }])).unwrap();
+    let [chart] = data.charts.as_slice() else {
+        panic!("expected one chart, got {}", data.charts.len());
+    };
+    assert_eq!(chart.level, "");
+    assert_eq!(chart.md5.as_deref(), Some("abc"));
+}
+
+#[test]
+fn chart_item_level_numeric_zero() {
+    let data: BmsTableData = serde_json::from_value(json!([{ "level": 0, "md5": "abc" }])).unwrap();
+    let [chart] = data.charts.as_slice() else {
+        panic!("expected one chart, got {}", data.charts.len());
+    };
+    assert_eq!(chart.level, "0");
 }
