@@ -23,16 +23,32 @@ jobs:
           # Persist credentials so git push (called by release-plz) can authenticate.
           persist-credentials: true
 
-      - name: Install release-plz and cargo-semver-checks
+      - name: Restore cargo cache
+        uses: https://data.forgejo.org/actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: rust-pr-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            rust-pr-${{ runner.os }}-
+
+      - name: Install release-plz and prepare release PR
         run: |
+          echo "::group::Install release-plz and cargo-semver-checks"
           cargo binstall --no-confirm \
             release-plz@0.3.159 \
             cargo-semver-checks@0.48
+          echo "::endgroup::"
 
-      - name: Prepare release PR
-        run: |
+          echo "::group::Configure git"
           git config --global user.name "BrightMeowS"
           git config --global user.email "brightmeows@163.com"
+          echo "::endgroup::"
+
+          echo "::group::Run release-plz release-pr"
           release-plz release-pr \
             --forge gitea \
             --git-token "${{ secrets.GITHUB_TOKEN }}"
+          echo "::endgroup::"
