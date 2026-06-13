@@ -308,10 +308,10 @@ impl BmsTableHtml {
     ///   <body></body>
     /// </html>
     /// "#;
-    /// let url = BmsTableHtml::try_extract_bmstable_from_html(html).unwrap();
+    /// let url = BmsTableHtml::extract_url(html).unwrap();
     /// assert_eq!(url, "header.json");
     /// ```
-    pub fn try_extract_bmstable_from_html(html_content: &str) -> Result<String> {
+    pub fn extract_url(html_content: &str) -> Result<String> {
         let document = Html::parse_document(html_content);
         let meta_selector = Selector::parse("meta").map_err(|_| anyhow!("meta tag not found"))?;
 
