@@ -23,16 +23,23 @@ jobs:
           # Persist credentials so git push (called by release-plz) can authenticate.
           persist-credentials: true
 
-      - name: Restore cargo cache
+      - name: Restore cargo registry
         uses: https://data.forgejo.org/actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: rust-pr-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: rust-pr-reg-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            rust-pr-${{ runner.os }}-
+            rust-pr-reg-${{ runner.os }}-
+
+      - name: Restore cargo target
+        uses: https://data.forgejo.org/actions/cache@v4
+        with:
+          path: target
+          key: rust-pr-target-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            rust-pr-target-${{ runner.os }}-
 
       - name: Install release-plz and prepare release PR
         run: |
