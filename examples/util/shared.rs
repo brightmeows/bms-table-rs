@@ -50,8 +50,7 @@ enum HeaderQueryContent<T> {
 fn get_web_header_json_value<T: DeserializeOwned>(
     response_str: &str,
 ) -> Result<HeaderQueryContent<T>> {
-    let cleaned = replace_control_chars(response_str);
-    match serde_json::from_str::<T>(&cleaned) {
+    match serde_json::from_str::<T>(response_str) {
         Ok(header_json) => Ok(HeaderQueryContent::Value(header_json)),
         Err(_) => {
             let bmstable_url =
