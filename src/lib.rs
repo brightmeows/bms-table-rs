@@ -171,6 +171,12 @@ impl BmsTableData {
     }
 }
 
+impl Default for BmsTableData {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
 /// Recursive course tree supporting arbitrary nesting depth.
 ///
 /// - [`Courses`][CourseGroup::Courses] — a leaf node containing a list of [`CourseInfo`] entries
@@ -365,6 +371,12 @@ impl ChartItem {
     }
 }
 
+impl Default for ChartItem {
+    fn default() -> Self {
+        Self::new(crate::de::default_level())
+    }
+}
+
 /// Trophy information.
 ///
 /// Defines conditions to achieve specific trophies, including maximum miss rate and minimum score rate.
@@ -376,6 +388,18 @@ pub struct Trophy {
     pub missrate: f64,
     /// Minimum score rate (percent), e.g. 70.0 means at least 70% score rate
     pub scorerate: f64,
+}
+
+impl Trophy {
+    /// Creates a new `Trophy` with the given name and rate thresholds.
+    #[must_use]
+    pub const fn new(name: String, missrate: f64, scorerate: f64) -> Self {
+        Self {
+            name,
+            missrate,
+            scorerate,
+        }
+    }
 }
 
 /// BMS difficulty table list item.
