@@ -333,21 +333,24 @@ pub struct ChartItem {
     )]
     pub level: String,
     /// MD5 hash of the file
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub md5: Option<String>,
     /// SHA256 hash of the file
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
     /// Song title
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     /// Artist name
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub artist: Option<String>,
     /// File download URL
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     /// Differential file download URL (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub url_diff: Option<String>,
     /// Comment text
-    ///
-    /// Unlike other optional fields (`md5`, `sha256`, `title`, `artist`, `url`, `url_diff`)
-    /// which serialize as `null` when absent, `comment` is skipped entirely when `None`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
     /// Extra data (unrecognized fields)

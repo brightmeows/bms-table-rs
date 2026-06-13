@@ -124,7 +124,7 @@ fn bms_table_data_serializes_as_array() {
 }
 
 #[test]
-fn optional_fields_except_comment_serialize_as_null() {
+fn optional_fields_are_skipped_when_none() {
     let item = ChartItem {
         level: "12".to_string(),
         md5: Some("hash".to_string()),
@@ -142,13 +142,11 @@ fn optional_fields_except_comment_serialize_as_null() {
         .expect("chart item must serialize to object");
     assert!(obj.contains_key("level"));
     assert!(obj.contains_key("md5"));
-    // Fields without skip_serializing_if serialize None as null
-    for key in &["sha256", "title", "artist", "url", "url_diff"] {
-        assert!(obj.contains_key(*key), "expected key '{key}' to be present");
-        assert_eq!(obj.get(*key).unwrap(), &serde_json::Value::Null);
+    // All optional fields use skip_serializing_if = "Option::is_none",
+    // so None fields are absent, not null.
+    for key in &["sha256", "title", "artist", "url", "url_diff", "comment"] {
+        assert!(!obj.contains_key(*key), "expected key '{key}' to be absent");
     }
-    // comment has skip_serializing_if = "Option::is_none"
-    assert!(!obj.contains_key("comment"));
     assert!(!obj.contains_key("extra"));
 }
 
