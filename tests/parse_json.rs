@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 // JSON parsing related tests: derived from original lib_tests.rs and fetch_tests.rs
 
 #[test]
-fn test_build_bms_table_from_json() {
+fn build_bms_table_from_json_parses_all_fields() {
     let header_json = json!({
         "name": "Test Table",
         "symbol": "test",
@@ -148,7 +148,7 @@ fn test_build_bms_table_from_json() {
 }
 
 #[test]
-fn test_build_bms_table_with_empty_fields() {
+fn build_bms_table_with_empty_fields_keeps_empty_strings() {
     let header_json = json!({
         "name": "Test Table",
         "symbol": "test",
@@ -188,7 +188,7 @@ fn test_build_bms_table_with_empty_fields() {
 }
 
 #[test]
-fn test_bms_table_creation() {
+fn bms_table_creation_sets_fields_correctly() {
     let header = BmsTableHeader {
         name: "Test Table".to_string(),
         symbol: "test".to_string(),
@@ -210,7 +210,7 @@ fn test_bms_table_creation() {
 }
 
 #[test]
-fn test_bms_table_partial_eq() {
+fn bms_table_partial_eq_matches_identical_tables() {
     let header1 = BmsTableHeader {
         name: "Test Table".to_string(),
         symbol: "test".to_string(),
@@ -238,7 +238,7 @@ fn test_bms_table_partial_eq() {
 }
 
 #[test]
-fn test_chart_item_numeric_fields_to_string() {
+fn chart_item_numeric_fields_convert_correctly() {
     let data_json = json!([
         {
             "level": 0,
@@ -269,7 +269,7 @@ fn test_chart_item_numeric_fields_to_string() {
 }
 
 #[test]
-fn test_build_bms_table_invalid_json() {
+fn build_bms_table_extra_fields_ignored() {
     let header_json = json!({
         "name": "Test Table",
         "symbol": "test",
@@ -287,7 +287,7 @@ fn test_build_bms_table_invalid_json() {
 }
 
 #[test]
-fn test_bms_table_header_deserialize_vec_course_info() {
+fn course_info_flat_list_deserialized_correctly() {
     let json_data = r#"{
         "name": "Test Table",
         "symbol": "test",
@@ -340,7 +340,7 @@ fn test_bms_table_header_deserialize_vec_course_info() {
 }
 
 #[test]
-fn test_bms_table_header_deserialize_vec_vec_course_info() {
+fn course_info_nested_lists_deserialized_correctly() {
     let json_data = r#"{
         "name": "Test Table",
         "symbol": "test",
@@ -438,7 +438,7 @@ fn test_bms_table_header_deserialize_vec_vec_course_info() {
 }
 
 #[test]
-fn test_course_info_deserialize_charts_with_default_level() {
+fn course_info_charts_missing_level_default_to_empty() {
     let json_data = r#"{
         "name": "Test Course",
         "constraint": ["grade_mirror"],
@@ -490,7 +490,7 @@ fn test_course_info_deserialize_charts_with_default_level() {
 }
 
 #[test]
-fn test_course_info_deserialize_sha256list_to_charts() {
+fn course_info_sha256_list_converts_to_charts() {
     let json_data = r#"{
         "name": "Test Course",
         "constraint": ["grade_mirror"],
@@ -527,7 +527,7 @@ fn test_course_info_deserialize_sha256list_to_charts() {
 }
 
 #[test]
-fn test_course_info_deserialize_md5_and_sha256_to_charts() {
+fn course_info_md5_sha256_both_convert_to_charts() {
     let json_data = r#"{
         "name": "Test Course",
         "constraint": ["grade_mirror"],
@@ -577,7 +577,7 @@ fn test_course_info_deserialize_md5_and_sha256_to_charts() {
 }
 
 #[test]
-fn test_json_serialization() {
+fn header_json_roundtrip_preserves_fields() {
     let header = bms_table::BmsTableHeader {
         name: "Test Table".to_string(),
         symbol: "test".to_string(),
@@ -605,7 +605,7 @@ fn make_course_info(name: &str) -> serde_json::Value {
 }
 
 #[test]
-fn roundtrip_course_empty_flat() {
+fn course_empty_flat_roundtrips_correctly() {
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":[],"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
     assert!(matches!(&h.course, CourseGroup::Courses(v) if v.is_empty()));
@@ -614,7 +614,7 @@ fn roundtrip_course_empty_flat() {
 }
 
 #[test]
-fn roundtrip_course_single_flat() {
+fn course_single_flat_roundtrips_correctly() {
     let course = json!([make_course_info("C1")]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
@@ -624,7 +624,7 @@ fn roundtrip_course_single_flat() {
 }
 
 #[test]
-fn roundtrip_course_multi_flat() {
+fn course_multi_flat_roundtrips_correctly() {
     let course = json!([make_course_info("C1"), make_course_info("C2")]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
@@ -634,7 +634,7 @@ fn roundtrip_course_multi_flat() {
 }
 
 #[test]
-fn roundtrip_course_single_nested() {
+fn course_single_nested_roundtrips_correctly() {
     let course = json!([[make_course_info("C1")]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
@@ -644,7 +644,7 @@ fn roundtrip_course_single_nested() {
 }
 
 #[test]
-fn roundtrip_course_multi_nested() {
+fn course_multi_nested_roundtrips_correctly() {
     let course = json!([[make_course_info("C1")], [make_course_info("C2")]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
@@ -654,7 +654,7 @@ fn roundtrip_course_multi_nested() {
 }
 
 #[test]
-fn roundtrip_course_empty_nested() {
+fn course_empty_nested_roundtrips_correctly() {
     let course = json!([[]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
@@ -668,7 +668,7 @@ fn roundtrip_course_empty_nested() {
 }
 
 #[test]
-fn roundtrip_course_deeply_nested() {
+fn course_deeply_nested_roundtrips_correctly() {
     let course = json!([[[make_course_info("C1")]]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
     let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
@@ -735,7 +735,7 @@ fn level_index_empty_level_order_returns_none() {
 }
 
 #[test]
-fn chart_item_new_fields_deserialize() {
+fn chart_item_new_fields_land_in_extra() {
     let data_json = json!([
         {
             "level": "1",
@@ -786,7 +786,7 @@ fn chart_item_new_fields_default_to_none() {
 }
 
 #[test]
-fn course_group_into_flatten_flat() {
+fn course_group_flat_into_flatten_returns_courses() {
     let info = CourseInfo {
         name: "C1".into(),
         constraint: vec![],
@@ -800,7 +800,7 @@ fn course_group_into_flatten_flat() {
 }
 
 #[test]
-fn course_group_into_flatten_nested() {
+fn course_group_nested_into_flatten_returns_courses() {
     let c1 = CourseInfo {
         name: "C1".into(),
         constraint: vec![],
@@ -824,13 +824,13 @@ fn course_group_into_flatten_nested() {
 }
 
 #[test]
-fn course_group_into_flatten_empty() {
+fn course_group_empty_into_flatten_returns_empty_vec() {
     let group = CourseGroup::Courses(vec![]);
     assert!(group.into_flatten().is_empty());
 }
 
 #[test]
-fn course_group_into_flatten_deeply_nested() {
+fn course_group_deeply_nested_into_flatten_returns_courses() {
     let c1 = CourseInfo {
         name: "C1".into(),
         constraint: vec![],
@@ -846,7 +846,7 @@ fn course_group_into_flatten_deeply_nested() {
 }
 
 #[test]
-fn empty_chart_data_array() {
+fn chart_data_empty_array_has_no_charts() {
     let data: BmsTableData = serde_json::from_value(json!([])).unwrap();
     assert!(data.charts.is_empty());
 }
@@ -863,7 +863,7 @@ fn chart_item_level_null_defaults_to_empty() {
 }
 
 #[test]
-fn chart_item_level_numeric_zero() {
+fn chart_item_level_zero_converts_to_string() {
     let data: BmsTableData = serde_json::from_value(json!([{ "level": 0, "md5": "abc" }])).unwrap();
     let [chart] = data.charts.as_slice() else {
         panic!("expected one chart, got {}", data.charts.len());
@@ -894,7 +894,7 @@ fn course_chart_level_null_defaults_to_empty() {
 }
 
 #[test]
-fn roundtrip_course_very_deeply_nested() {
+fn course_very_deeply_nested_roundtrips_correctly() {
     // 4 levels: [[[[C1]]]]
     let course = json!([[[[make_course_info("C1")]]]]);
     let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});

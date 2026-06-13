@@ -59,7 +59,7 @@ fn no_bmstable_returns_error() {
 }
 
 #[test]
-fn first_matching_meta_is_returned_when_multiple_present() {
+fn multiple_bmstable_metas_returns_first() {
     let html = r#"
     <!DOCTYPE html>
     <html>
@@ -108,7 +108,7 @@ fn empty_content_returns_error() {
 }
 
 #[test]
-fn case_insensitive_tag_and_attribute_names() {
+fn case_insensitive_tags_parsed_correctly() {
     let html = r#"
     <!DOCTYPE html>
     <html>
@@ -124,7 +124,7 @@ fn case_insensitive_tag_and_attribute_names() {
 }
 
 #[test]
-fn mixed_case_meta_name() {
+fn mixed_case_meta_name_parsed_correctly() {
     let html = r#"
     <!DOCTYPE html>
     <html>
@@ -140,7 +140,7 @@ fn mixed_case_meta_name() {
 }
 
 #[test]
-fn single_quoted_attributes() {
+fn single_quoted_attributes_parsed_correctly() {
     let html = r#"
     <!DOCTYPE html>
     <html>
@@ -156,7 +156,7 @@ fn single_quoted_attributes() {
 }
 
 #[test]
-fn attribute_order_variation() {
+fn reversed_attribute_order_parsed_correctly() {
     let html = r#"
     <!DOCTYPE html>
     <html>
@@ -220,7 +220,7 @@ fn meta_only_in_comment_returns_error() {
 }
 
 #[test]
-fn self_closing_meta_tag() {
+fn self_closing_meta_tag_parsed_correctly() {
     let html = r#"
     <!DOCTYPE html>
     <html>
@@ -236,7 +236,7 @@ fn self_closing_meta_tag() {
 }
 
 #[test]
-fn url_with_colon_and_slashes() {
+fn url_with_special_chars_parsed_correctly() {
     let html = r#"
     <!DOCTYPE html>
     <html>
@@ -253,7 +253,7 @@ fn url_with_colon_and_slashes() {
 }
 
 #[test]
-fn property_attribute_mixed_case() {
+fn property_attribute_mixed_case_parsed_correctly() {
     let html = r#"
     <!DOCTYPE html>
     <html>

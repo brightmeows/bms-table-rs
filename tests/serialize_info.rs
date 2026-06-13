@@ -5,7 +5,7 @@ use bms_table::{BmsTableInfo, BmsTableList};
 use url::Url;
 
 #[test]
-fn test_bms_table_list_serialize_array() {
+fn bms_table_list_serializes_as_array() {
     let item1 = BmsTableInfo {
         name: ".WAS難易度表".to_string(),
         symbol: "．".to_string(),

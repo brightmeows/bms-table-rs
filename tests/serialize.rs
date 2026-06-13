@@ -4,7 +4,7 @@ use bms_table::{BmsTableData, BmsTableHeader, BmsTableList, ChartItem, CourseGro
 use std::collections::BTreeMap;
 
 #[test]
-fn test_header_serialize_flattens_extra() {
+fn header_serialize_flattens_extra_fields() {
     let header = BmsTableHeader {
         name: "Test Table".to_string(),
         symbol: "tt".to_string(),
@@ -44,7 +44,7 @@ fn test_header_serialize_flattens_extra() {
 }
 
 #[test]
-fn test_chart_item_serialize_flattens_extra() {
+fn chart_item_serialize_flattens_extra_fields() {
     let item = ChartItem {
         level: "1".to_string(),
         md5: Some("md5hash".to_string()),
@@ -80,7 +80,7 @@ fn test_chart_item_serialize_flattens_extra() {
 }
 
 #[test]
-fn test_bms_table_data_serialize_array() {
+fn bms_table_data_serializes_as_array() {
     let item1 = ChartItem {
         level: "0".to_string(),
         md5: None,
@@ -124,7 +124,7 @@ fn test_bms_table_data_serialize_array() {
 }
 
 #[test]
-fn optional_fields_skip_when_none() {
+fn optional_fields_except_comment_serialize_as_null() {
     let item = ChartItem {
         level: "12".to_string(),
         md5: Some("hash".to_string()),
@@ -153,7 +153,7 @@ fn optional_fields_skip_when_none() {
 }
 
 #[test]
-fn header_tag_mode_roundtrip() {
+fn header_tag_mode_roundtrip_preserves_values() {
     let header = BmsTableHeader {
         name: "Table".to_string(),
         symbol: "t".to_string(),
@@ -194,14 +194,14 @@ fn header_tag_mode_none_skipped_in_serialization() {
 }
 
 #[test]
-fn bms_table_data_new_constructor() {
+fn bms_table_data_new_constructor_sets_charts() {
     let item = ChartItem::new("12".to_string());
     let data = BmsTableData::new(vec![item]);
     assert_eq!(data.charts.len(), 1);
 }
 
 #[test]
-fn bms_table_list_new_constructor() {
+fn bms_table_list_new_constructor_sets_entries() {
     use bms_table::BmsTableInfo;
     use url::Url;
 
