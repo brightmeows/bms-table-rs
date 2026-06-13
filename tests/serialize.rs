@@ -54,10 +54,6 @@ fn test_chart_item_serialize_flattens_extra() {
         url: Some("http://example.com".to_string()),
         url_diff: None,
         comment: None,
-        url_pack: None,
-        name_pack: None,
-        org_md5: None,
-        mode: None,
         extra: {
             let mut m = BTreeMap::new();
             m.insert("custom_field".to_string(), serde_json::json!("value"));
@@ -94,10 +90,6 @@ fn test_bms_table_data_serialize_array() {
         url: None,
         url_diff: None,
         comment: None,
-        url_pack: None,
-        name_pack: None,
-        org_md5: None,
-        mode: None,
         extra: BTreeMap::new(),
     };
     let item2 = ChartItem {
@@ -109,10 +101,6 @@ fn test_bms_table_data_serialize_array() {
         url: None,
         url_diff: None,
         comment: None,
-        url_pack: None,
-        name_pack: None,
-        org_md5: None,
-        mode: None,
         extra: BTreeMap::new(),
     };
     let data = BmsTableData {
@@ -133,4 +121,33 @@ fn test_bms_table_data_serialize_array() {
     };
     assert_eq!(c0.level.as_str(), "0");
     assert_eq!(c1.level.as_str(), "1");
+}
+
+#[test]
+fn optional_fields_skip_when_none() {
+    let item = ChartItem {
+        level: "12".to_string(),
+        md5: Some("hash".to_string()),
+        sha256: None,
+        title: None,
+        artist: None,
+        url: None,
+        url_diff: None,
+        comment: None,
+        extra: BTreeMap::new(),
+    };
+    let value = serde_json::to_value(&item).unwrap();
+    let obj = value
+        .as_object()
+        .expect("chart item must serialize to object");
+    assert!(obj.contains_key("level"));
+    assert!(obj.contains_key("md5"));
+    // Fields without skip_serializing_if serialize None as null
+    for key in &["sha256", "title", "artist", "url", "url_diff"] {
+        assert!(obj.contains_key(*key), "expected key '{key}' to be present");
+        assert_eq!(obj.get(*key).unwrap(), &serde_json::Value::Null);
+    }
+    // comment has skip_serializing_if = "Option::is_none"
+    assert!(!obj.contains_key("comment"));
+    assert!(!obj.contains_key("extra"));
 }

@@ -32,10 +32,13 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 
 mod de;
+mod error;
+
+/// Re-export for convenience.
+pub use crate::error::BmsTableError;
 
 use std::collections::BTreeMap;
 
-use anyhow::{Result, anyhow};
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -140,7 +143,8 @@ impl BmsTableHeader {
 
 /// BMS table data.
 ///
-/// Contains only the chart array. Parsing supports both a plain array and `{ charts: [...] }` input forms.
+/// Wraps the chart array (`[...]`). The input JSON is expected to be a plain array of [`ChartItem`]
+/// objects; the `{ "charts": [...] }` wrapper form is **not** supported.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct BmsTableData {
@@ -225,9 +229,13 @@ pub struct CourseInfo {
 ///
 /// Describes metadata and resource links for a single BMS file.
 ///
-/// Spec-defined optional fields (`comment`, `url_pack`, `name_pack`, `org_md5`,
-/// `mode`) are first-class fields. Truly unrecognized fields are preserved via
-/// `extra` for forward compatibility.
+/// Only the most commonly used spec-defined fields (`md5`, `sha256`, `level`,
+/// `title`, `artist`, `url`, `url_diff`, `comment`) are exposed as first-class
+/// fields. Other spec-defined optional fields (such as `name_diff`, `url_pack`,
+/// `name_pack`, `org_md5`, `mode`, `ipfs`, `ipfs_diff`, `lr2_bmsid`, etc.) are
+/// **not** individually promoted — they are preserved via [`extra`](ChartItem::extra)
+/// for forward compatibility. This keeps the struct lean while remaining
+/// fully compatible with all real-world tables.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChartItem {
     /// Difficulty level, e.g. "0"
@@ -248,18 +256,6 @@ pub struct ChartItem {
     /// Comment text
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub comment: Option<String>,
-    /// Pack download URL
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub url_pack: Option<String>,
-    /// Pack name
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name_pack: Option<String>,
-    /// MD5 of the bundled chart (用于自動差分導入)
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub org_md5: Option<String>,
-    /// Play mode; overrides header `mode` when set
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mode: Option<String>,
     /// Extra data (unrecognized fields)
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
@@ -278,10 +274,6 @@ impl ChartItem {
             url: None,
             url_diff: None,
             comment: None,
-            url_pack: None,
-            name_pack: None,
-            org_md5: None,
-            mode: None,
             extra: BTreeMap::new(),
         }
     }
@@ -302,7 +294,9 @@ pub struct Trophy {
 
 /// BMS difficulty table list item.
 ///
-/// Represents the basic information of a difficulty table in a list. Only `name`, `symbol`, and `url` are required; other fields such as `tag1`, `tag2`, `comment`, `date`, `state`, and `tag_order` are collected into `extra`.
+/// Represents the basic information of a difficulty table in a list. `name`, `symbol`, and `url` are
+/// the core fields; other fields such as `tag1`, `tag2`, `comment`, `date`, `state`, and `tag_order`
+/// are collected into [`extra`](BmsTableInfo::extra).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BmsTableInfo {
     /// Table name, e.g. ".WAS Difficulty Table"
@@ -342,7 +336,7 @@ impl BmsTableHtml {
     ///
     /// # Errors
     ///
-    /// Returns an error when the target tag is not found or `content` is empty.
+    /// Returns [`BmsTableError::MetaTagNotFound`] when the target tag is not found or `content` is empty.
     ///
     /// # Example
     ///
@@ -360,9 +354,10 @@ impl BmsTableHtml {
     /// let url = BmsTableHtml::extract_url(html).unwrap();
     /// assert_eq!(url, "header.json");
     /// ```
-    pub fn extract_url(html_content: &str) -> Result<String> {
+    pub fn extract_url(html_content: &str) -> Result<String, BmsTableError> {
         let document = Html::parse_document(html_content);
-        let meta_selector = Selector::parse("meta").map_err(|_| anyhow!("meta tag not found"))?;
+        let meta_selector =
+            Selector::parse("meta").map_err(|e| BmsTableError::SelectorParse(e.to_string()))?;
 
         for element in document.select(&meta_selector) {
             let is_bmstable = element
@@ -381,6 +376,6 @@ impl BmsTableHtml {
             }
         }
 
-        Err(anyhow!("bmstable meta tag not found"))
+        Err(BmsTableError::MetaTagNotFound)
     }
 }

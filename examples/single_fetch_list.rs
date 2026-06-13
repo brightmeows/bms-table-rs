@@ -1,7 +1,9 @@
 //! Single-run example for fetching the table list
 //!
 //! How to run:
-//!   cargo run --example single_fetch_list
+//! ```sh
+//! cargo run --example single_fetch_list
+//! ```
 
 #[path = "util/shared.rs"]
 mod shared;
