@@ -9,14 +9,14 @@
 //!
 //! - Parse header JSON into [`BmsTableHeader`], preserving unrecognized fields in `extra` for forward compatibility;
 //! - Parse chart data into [`BmsTableData`], supporting a plain array of [`ChartItem`] structure;
-//! - Courses automatically convert `md5`/`sha256` lists into chart items, with `level` defaulting to `"0"`;
+//! - Course `md5`/`sha256` shorthand lists are preserved as independent fields; use [`CourseInfo::all_charts`] for a merged view;
 //! - Extract the header JSON URL from HTML `<meta name="bmstable">` (zero-copy, returns `&str`).
 //!
 //! # Usage
 //!
 //! ```rust
 //! # fn main() -> Result<(), serde_json::Error> {
-//! use bms_table::{BmsTable, BmsTableHeader, BmsTableData, CourseGroup};
+//! use bms_table::{BmsTable, BmsTableHeader, BmsTableData};
 //!
 //! let header_json = r#"{ "name": "Test", "symbol": "t", "data_url": "charts.json", "course": [], "level_order": [] }"#;
 //! let data_json = r#"[]"#;
@@ -215,9 +215,12 @@ impl From<CourseInfo> for CourseGroup {
 
 /// Course information.
 ///
-/// Describes a course's name, constraints, trophies and chart set. During parsing, `md5`/`sha256` lists are automatically converted into `ChartItem`s with `level` defaulting to `"0"`.
+/// Describes a course's name, constraints, trophies and chart set.
+/// Charts are specified via three independent fields that can coexist:
+/// `charts` (full objects), `md5` (hash shorthand), and `sha256` (hash shorthand).
+/// All three are preserved for round-trip fidelity.
+/// Use [`CourseInfo::all_charts`] for a merged view.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(try_from = "crate::de::CourseInfoRaw")]
 pub struct CourseInfo {
     /// Course name, e.g. "Satellite Skill Analyzer 2nd sl0"
     pub name: String,
@@ -227,9 +230,59 @@ pub struct CourseInfo {
     /// List of trophies, defining requirements for different ranks
     #[serde(default)]
     pub trophy: Vec<Trophy>,
-    /// List of charts included in the course
-    #[serde(default)]
+    /// Full chart objects from the `charts` JSON array
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub charts: Vec<ChartItem>,
+    /// MD5 hash shorthand list, expanded by [`all_charts`](CourseInfo::all_charts) with `level = "0"`
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub md5: Vec<String>,
+    /// SHA256 hash shorthand list, expanded by [`all_charts`](CourseInfo::all_charts) with `level = "0"`
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sha256: Vec<String>,
+    /// Extra data (unrecognized fields from course JSON)
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+impl CourseInfo {
+    /// Creates a new `CourseInfo` with the given name and all other fields empty.
+    #[must_use]
+    pub const fn new(name: String) -> Self {
+        Self {
+            name,
+            constraint: Vec::new(),
+            trophy: Vec::new(),
+            charts: Vec::new(),
+            md5: Vec::new(),
+            sha256: Vec::new(),
+            extra: BTreeMap::new(),
+        }
+    }
+
+    /// Merges all chart sources in order: `charts` → `md5` → `sha256`.
+    ///
+    /// Hash shorthand entries (`md5`, `sha256`) are expanded into [`ChartItem`]s
+    /// with `level` defaulting to `"0"` per the BMS difficulty table spec.
+    #[must_use]
+    pub fn all_charts(&self) -> Vec<ChartItem> {
+        fn from_md5(hash: String) -> ChartItem {
+            ChartItem {
+                md5: Some(hash),
+                ..ChartItem::new(crate::de::default_level())
+            }
+        }
+        fn from_sha256(hash: String) -> ChartItem {
+            ChartItem {
+                sha256: Some(hash),
+                ..ChartItem::new(crate::de::default_level())
+            }
+        }
+
+        let mut result = self.charts.clone();
+        result.extend(self.md5.iter().cloned().map(from_md5));
+        result.extend(self.sha256.iter().cloned().map(from_sha256));
+        result
+    }
 }
 
 /// Chart data item.

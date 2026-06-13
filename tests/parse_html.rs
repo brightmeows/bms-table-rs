@@ -294,3 +294,20 @@ fn whitespace_only_html_returns_error() {
     let result = BmsTableHtml::extract_url("   \n  \t  ");
     assert!(result.is_err());
 }
+
+#[test]
+fn multiline_attribute_parsed_correctly() {
+    let html = r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="bmstable"
+              content="header.json">
+    </head>
+    </html>
+    "#;
+
+    let result = BmsTableHtml::extract_url(html);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), "header.json");
+}

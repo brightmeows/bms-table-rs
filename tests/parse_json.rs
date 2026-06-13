@@ -2,7 +2,7 @@
 //!
 //! Covers common and edge inputs for headers, courses, and chart data to ensure deserialization and field compatibility behave correctly.
 
-use bms_table::{BmsTable, BmsTableData, BmsTableHeader, CourseGroup, CourseInfo};
+use bms_table::{BmsTable, BmsTableData, BmsTableHeader, ChartItem, CourseGroup, CourseInfo};
 use serde_json::json;
 use std::collections::BTreeMap;
 
@@ -87,16 +87,7 @@ fn build_bms_table_from_json_parses_all_fields() {
     assert_eq!(trophy0.name, "goldmedal");
     assert!((trophy0.missrate - 1.0).abs() <= 1e-12);
     assert!((trophy0.scorerate - 90.0).abs() <= 1e-12);
-    assert_eq!(course.charts.len(), 2);
-    let [c0, c1] = course.charts.as_slice() else {
-        panic!(
-            "expected two charts, got {}: {:?}",
-            course.charts.len(),
-            course.charts
-        );
-    };
-    assert_eq!(c0.md5.as_deref(), Some("test_md5_1"));
-    assert_eq!(c1.md5.as_deref(), Some("test_md5_2"));
+    assert_eq!(course.md5, vec!["test_md5_1", "test_md5_2"]);
 
     let [score] = bms_table.data.charts.as_slice() else {
         panic!(
@@ -327,16 +318,7 @@ fn course_info_flat_list_deserialized_correctly() {
         other => panic!("expected Courses, got {:?}", other),
     };
     assert_eq!(course.name.as_str(), "Course 1");
-    assert_eq!(course.charts.len(), 2);
-    let [c0, c1] = course.charts.as_slice() else {
-        panic!(
-            "expected two charts, got {}: {:?}",
-            course.charts.len(),
-            course.charts
-        );
-    };
-    assert_eq!(c0.md5.as_deref(), Some("abc123"));
-    assert_eq!(c1.md5.as_deref(), Some("def456"));
+    assert_eq!(course.md5, vec!["abc123", "def456"]);
 }
 
 #[test]
@@ -415,26 +397,8 @@ fn course_info_nested_lists_deserialized_correctly() {
     };
     assert_eq!(course1.name.as_str(), "Course 1");
     assert_eq!(course2.name.as_str(), "Course 2");
-    assert_eq!(course1.charts.len(), 2);
-    let [c10, c11] = course1.charts.as_slice() else {
-        panic!(
-            "expected two charts, got {}: {:?}",
-            course1.charts.len(),
-            course1.charts
-        );
-    };
-    assert_eq!(c10.md5.as_deref(), Some("abc123"));
-    assert_eq!(c11.md5.as_deref(), Some("def456"));
-
-    assert_eq!(course2.charts.len(), 1);
-    let [c20] = course2.charts.as_slice() else {
-        panic!(
-            "expected one chart, got {}: {:?}",
-            course2.charts.len(),
-            course2.charts
-        );
-    };
-    assert_eq!(c20.md5.as_deref(), Some("ghi789"));
+    assert_eq!(course1.md5, vec!["abc123", "def456"]);
+    assert_eq!(course2.md5, vec!["ghi789"]);
 }
 
 #[test]
@@ -511,19 +475,7 @@ fn course_info_sha256_list_converts_to_charts() {
     assert_eq!(course_info.name, "Test Course");
     assert_eq!(course_info.constraint, vec!["grade_mirror"]);
     assert_eq!(course_info.trophy.len(), 1);
-    assert_eq!(course_info.charts.len(), 2);
-
-    let [c0, c1] = course_info.charts.as_slice() else {
-        panic!(
-            "expected two charts, got {}: {:?}",
-            course_info.charts.len(),
-            course_info.charts
-        );
-    };
-    assert_eq!(c0.sha256.as_deref(), Some("sha256_hash_1"));
-    assert_eq!(c1.sha256.as_deref(), Some("sha256_hash_2"));
-    assert_eq!(c0.md5.as_deref(), None);
-    assert_eq!(c1.md5.as_deref(), None);
+    assert_eq!(course_info.sha256, vec!["sha256_hash_1", "sha256_hash_2"]);
 }
 
 #[test]
@@ -556,11 +508,13 @@ fn course_info_md5_sha256_both_convert_to_charts() {
     assert_eq!(course_info.name, "Test Course");
     assert_eq!(course_info.constraint, vec!["grade_mirror"]);
     assert_eq!(course_info.trophy.len(), 1);
-    assert_eq!(course_info.charts.len(), 3);
+    assert_eq!(course_info.md5, vec!["md5_hash_1"]);
+    assert_eq!(course_info.sha256, vec!["sha256_hash_1"]);
+    assert_eq!(course_info.charts.len(), 1);
 
-    let [existing, from_md5, from_sha256] = course_info.charts.as_slice() else {
+    let [existing] = course_info.charts.as_slice() else {
         panic!(
-            "expected three charts, got {}: {:?}",
+            "expected one chart, got {}: {:?}",
             course_info.charts.len(),
             course_info.charts
         );
@@ -568,12 +522,6 @@ fn course_info_md5_sha256_both_convert_to_charts() {
     assert_eq!(existing.level.as_str(), "2");
     assert_eq!(existing.title.as_deref(), Some("Existing Chart"));
     assert_eq!(existing.artist.as_deref(), Some("Test Artist"));
-
-    assert_eq!(from_md5.md5.as_deref(), Some("md5_hash_1"));
-    assert_eq!(from_md5.level.as_str(), "0");
-
-    assert_eq!(from_sha256.sha256.as_deref(), Some("sha256_hash_1"));
-    assert_eq!(from_sha256.level.as_str(), "0");
 }
 
 #[test]
@@ -600,7 +548,6 @@ fn make_course_info(name: &str) -> serde_json::Value {
         "name": name,
         "constraint": [],
         "trophy": [],
-        "charts": [],
     })
 }
 
@@ -792,6 +739,9 @@ fn course_group_flat_into_flatten_returns_courses() {
         constraint: vec![],
         trophy: vec![],
         charts: vec![],
+        md5: vec![],
+        sha256: vec![],
+        extra: BTreeMap::new(),
     };
     let group = CourseGroup::Courses(vec![info]);
     let flat = group.into_flatten();
@@ -806,12 +756,18 @@ fn course_group_nested_into_flatten_returns_courses() {
         constraint: vec![],
         trophy: vec![],
         charts: vec![],
+        md5: vec![],
+        sha256: vec![],
+        extra: BTreeMap::new(),
     };
     let c2 = CourseInfo {
         name: "C2".into(),
         constraint: vec![],
         trophy: vec![],
         charts: vec![],
+        md5: vec![],
+        sha256: vec![],
+        extra: BTreeMap::new(),
     };
     let group = CourseGroup::SubGroups(vec![
         CourseGroup::Courses(vec![c1]),
@@ -836,6 +792,9 @@ fn course_group_deeply_nested_into_flatten_returns_courses() {
         constraint: vec![],
         trophy: vec![],
         charts: vec![],
+        md5: vec![],
+        sha256: vec![],
+        extra: BTreeMap::new(),
     };
     let group = CourseGroup::SubGroups(vec![CourseGroup::SubGroups(vec![CourseGroup::Courses(
         vec![c1],
@@ -954,6 +913,9 @@ fn course_group_from_course_info_converts_correctly() {
         constraint: vec![],
         trophy: vec![],
         charts: vec![],
+        md5: vec![],
+        sha256: vec![],
+        extra: BTreeMap::new(),
     };
     let group: CourseGroup = info.into();
     match group {
@@ -970,4 +932,66 @@ fn de_numstring_rejects_boolean_level() {
     let raw = json!([{ "level": true, "md5": "abc" }]);
     let result: Result<BmsTableData, _> = serde_json::from_value(raw);
     assert!(result.is_err());
+}
+
+#[test]
+fn course_info_all_charts_merges_three_sources() {
+    let course = CourseInfo {
+        name: "C1".into(),
+        constraint: vec![],
+        trophy: vec![],
+        charts: vec![ChartItem {
+            md5: Some("chart_md5".into()),
+            ..ChartItem::new("1".into())
+        }],
+        md5: vec!["md5_1".into(), "md5_2".into()],
+        sha256: vec!["sha_1".into()],
+        extra: BTreeMap::new(),
+    };
+    let all = course.all_charts();
+    assert_eq!(all.len(), 4);
+    // charts first
+    assert_eq!(all[0].md5.as_deref(), Some("chart_md5"));
+    assert_eq!(all[0].level, "1");
+    // then md5 (expanded with level = "0")
+    assert_eq!(all[1].md5.as_deref(), Some("md5_1"));
+    assert_eq!(all[1].level, "0");
+    assert_eq!(all[2].md5.as_deref(), Some("md5_2"));
+    assert_eq!(all[2].level, "0");
+    // then sha256 (expanded with level = "0")
+    assert_eq!(all[3].sha256.as_deref(), Some("sha_1"));
+    assert_eq!(all[3].level, "0");
+}
+
+#[test]
+fn course_info_extra_fields_preserved() {
+    let json_data = r#"{
+        "name": "C1",
+        "constraint": [],
+        "trophy": [],
+        "custom_field": "custom_value",
+        "another": 42
+    }"#;
+    let course: CourseInfo = serde_json::from_str(json_data).unwrap();
+    assert_eq!(
+        course.extra.get("custom_field"),
+        Some(&json!("custom_value"))
+    );
+    assert_eq!(course.extra.get("another"), Some(&json!(42)));
+}
+
+#[test]
+fn course_info_md5_sha256_roundtrip_preserved() {
+    let course = CourseInfo {
+        name: "C1".into(),
+        constraint: vec![],
+        trophy: vec![],
+        charts: vec![],
+        md5: vec!["hash1".into()],
+        sha256: vec!["hash2".into()],
+        extra: BTreeMap::new(),
+    };
+    let json_str = serde_json::to_string(&course).unwrap();
+    let parsed: CourseInfo = serde_json::from_str(&json_str).unwrap();
+    assert_eq!(course, parsed);
 }
