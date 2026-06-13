@@ -19,6 +19,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Get Rust version
+        run: echo "RUST_VERSION=$(rustc --version | cut -d' ' -f2)" >> $GITHUB_ENV
+
       - name: Restore cargo registry
         uses: https://data.forgejo.org/actions/cache@v4
         with:
@@ -33,9 +36,9 @@ jobs:
         uses: https://data.forgejo.org/actions/cache@v4
         with:
           path: target
-          key: rust-release-target-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: rust-release-target-${{ runner.os }}-${{ env.RUST_VERSION }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            rust-release-target-${{ runner.os }}-
+            rust-release-target-${{ runner.os }}-${{ env.RUST_VERSION }}-
 
       - name: Install release-plz and publish crates
         run: |
