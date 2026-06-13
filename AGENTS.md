@@ -5,7 +5,7 @@
 ### Pre-commit (auto on commit)
 
 ```bash
-pre-commit run --all-files --quiet    # manually trigger all hooks at once
+pre-commit run --all-files    # manually trigger all hooks at once
 ```
 
 Hooks configured: `cargo fmt --check`, `cargo clippy --quiet`, `cargo doc --no-deps --quiet`.
