@@ -733,7 +733,7 @@ fn chart_item_new_fields_default_to_none() {
 }
 
 #[test]
-fn course_group_flat_into_flatten_returns_courses() {
+fn course_group_flat_into_flattened_returns_courses() {
     let info = CourseInfo {
         name: "C1".into(),
         constraint: vec![],
@@ -744,13 +744,13 @@ fn course_group_flat_into_flatten_returns_courses() {
         extra: BTreeMap::new(),
     };
     let group = CourseGroup::Courses(vec![info]);
-    let flat = group.into_flatten();
+    let flat = group.into_flattened();
     assert_eq!(flat.len(), 1);
     assert_eq!(flat.first().unwrap().name, "C1");
 }
 
 #[test]
-fn course_group_nested_into_flatten_returns_courses() {
+fn course_group_nested_into_flattened_returns_courses() {
     let c1 = CourseInfo {
         name: "C1".into(),
         constraint: vec![],
@@ -773,20 +773,20 @@ fn course_group_nested_into_flatten_returns_courses() {
         CourseGroup::Courses(vec![c1]),
         CourseGroup::Courses(vec![c2]),
     ]);
-    let flat = group.into_flatten();
+    let flat = group.into_flattened();
     assert_eq!(flat.len(), 2);
     assert_eq!(flat.first().unwrap().name, "C1");
     assert_eq!(flat.get(1).unwrap().name, "C2");
 }
 
 #[test]
-fn course_group_empty_into_flatten_returns_empty_vec() {
+fn course_group_empty_into_flattened_returns_empty_vec() {
     let group = CourseGroup::Courses(vec![]);
-    assert!(group.into_flatten().is_empty());
+    assert!(group.into_flattened().is_empty());
 }
 
 #[test]
-fn course_group_deeply_nested_into_flatten_returns_courses() {
+fn course_group_deeply_nested_into_flattened_returns_courses() {
     let c1 = CourseInfo {
         name: "C1".into(),
         constraint: vec![],
@@ -799,7 +799,7 @@ fn course_group_deeply_nested_into_flatten_returns_courses() {
     let group = CourseGroup::SubGroups(vec![CourseGroup::SubGroups(vec![CourseGroup::Courses(
         vec![c1],
     )])]);
-    let flat = group.into_flatten();
+    let flat = group.into_flattened();
     assert_eq!(flat.len(), 1);
     assert_eq!(flat.first().unwrap().name, "C1");
 }
@@ -928,7 +928,7 @@ fn course_group_from_course_info_converts_correctly() {
 }
 
 #[test]
-fn de_numstring_rejects_boolean_level() {
+fn level_field_boolean_reports_error() {
     let raw = json!([{ "level": true, "md5": "abc" }]);
     let result: Result<BmsTableData, _> = serde_json::from_value(raw);
     assert!(result.is_err());
@@ -950,17 +950,20 @@ fn course_info_all_charts_merges_three_sources() {
     };
     let all = course.all_charts();
     assert_eq!(all.len(), 4);
+    let [chart, md5_1, md5_2, sha_1] = all.as_slice() else {
+        panic!("expected four charts, got {}: {:?}", all.len(), all);
+    };
     // charts first
-    assert_eq!(all[0].md5.as_deref(), Some("chart_md5"));
-    assert_eq!(all[0].level, "1");
+    assert_eq!(chart.md5.as_deref(), Some("chart_md5"));
+    assert_eq!(chart.level, "1");
     // then md5 (expanded with level = "0")
-    assert_eq!(all[1].md5.as_deref(), Some("md5_1"));
-    assert_eq!(all[1].level, "0");
-    assert_eq!(all[2].md5.as_deref(), Some("md5_2"));
-    assert_eq!(all[2].level, "0");
+    assert_eq!(md5_1.md5.as_deref(), Some("md5_1"));
+    assert_eq!(md5_1.level, "0");
+    assert_eq!(md5_2.md5.as_deref(), Some("md5_2"));
+    assert_eq!(md5_2.level, "0");
     // then sha256 (expanded with level = "0")
-    assert_eq!(all[3].sha256.as_deref(), Some("sha_1"));
-    assert_eq!(all[3].level, "0");
+    assert_eq!(sha_1.sha256.as_deref(), Some("sha_1"));
+    assert_eq!(sha_1.level, "0");
 }
 
 #[test]
