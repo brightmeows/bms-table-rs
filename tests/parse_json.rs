@@ -870,3 +870,52 @@ fn chart_item_level_numeric_zero() {
     };
     assert_eq!(chart.level, "0");
 }
+
+#[test]
+fn course_chart_level_null_defaults_to_zero() {
+    // When a course chart has `"level": null`, it should be treated as missing
+    // and filled with `"0"` (same as when `level` is absent).
+    let json_data = r#"{
+        "name": "Test Course",
+        "constraint": [],
+        "trophy": [],
+        "charts": [
+            { "level": null, "title": "Null Level Chart" },
+            { "title": "Missing Level Chart" }
+        ]
+    }"#;
+
+    let course: CourseInfo = serde_json::from_str(json_data).unwrap();
+    let [c0, c1] = course.charts.as_slice() else {
+        panic!("expected two charts, got {}", course.charts.len());
+    };
+    assert_eq!(c0.level, "0", "null level should default to '0'");
+    assert_eq!(c1.level, "0", "missing level should default to '0'");
+}
+
+#[test]
+fn roundtrip_course_very_deeply_nested() {
+    // 4 levels: [[[[C1]]]]
+    let course = json!([[[[make_course_info("C1")]]]]);
+    let raw = json!({"name":"T","symbol":"t","data_url":"c.json","course":course,"level_order":[]});
+    let h: BmsTableHeader = serde_json::from_value(raw).unwrap();
+    assert!(matches!(&h.course, CourseGroup::SubGroups(g) if g.len() == 1));
+    let out = serde_json::to_value(&h).unwrap();
+    assert_eq!(out.get("course").unwrap(), &course);
+}
+
+#[test]
+fn course_group_default_serializes_as_empty_array() {
+    let header = BmsTableHeader {
+        name: "T".into(),
+        symbol: "t".into(),
+        data_url: "c.json".into(),
+        tag: None,
+        mode: None,
+        course: CourseGroup::default(),
+        level_order: vec![],
+        extra: BTreeMap::new(),
+    };
+    let value = serde_json::to_value(&header).unwrap();
+    assert_eq!(value.get("course").unwrap(), &json!([]));
+}

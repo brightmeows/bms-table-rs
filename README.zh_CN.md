@@ -19,6 +19,7 @@
 - `BmsTable`：顶层数据结构，包含 `header` 与 `data`。
 - `BmsTableHeader`：表头元数据；未识别字段保留到 `extra`。
 - `BmsTableData`：谱面数据数组。
+- `CourseGroup`：递归课程序列树，支持任意嵌套深度（`Courses` 叶节点 / `SubGroups` 分支节点）。
 - `CourseInfo`：段位信息，支持 `md5`/`sha256` 列表自动转换为谱面。
 - `ChartItem`：谱面条目；空字符串在反序列化时保留为 `Some("")`。
 - `Trophy`：奖杯要求（最大 miss 率、最低得分率）。
