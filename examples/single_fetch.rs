@@ -27,11 +27,11 @@ async fn main() -> Result<()> {
             );
         }
         Err(e) => {
-            eprintln!("Fetch failed for: {}", url);
-            eprintln!("Message: {}", e);
+            eprintln!("Fetch failed for: {url}");
+            eprintln!("Message: {e}");
             eprintln!("Causes:");
             for (i, cause) in e.chain().enumerate() {
-                eprintln!("  [{}] {}", i, cause);
+                eprintln!("  [{i}] {cause}");
             }
             match std::env::var("RUST_BACKTRACE").as_deref() {
                 Ok("1") => {

@@ -49,8 +49,7 @@ where
         Value::String(s) => Ok(s),
         Value::Number(n) => Ok(n.to_string()),
         other => Err(serde::de::Error::custom(format!(
-            "expected string or number, got {}",
-            other
+            "expected string or number, got {other}"
         ))),
     }
 }
