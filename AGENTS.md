@@ -34,6 +34,11 @@ Conventional Commits matching `release-plz.toml` changelog groups:
 - Use `()` for scope, e.g. `feat(bms-parser):`.
 - Use `!` for BREAKING CHANGE, e.g. `feat!:` or `feat(scope)!:`.
 
+## Changelog
+
+`CHANGELOG.md` is managed by release-plz — do not edit it manually.
+Conventional commit messages determine the changelog groups; see `release-plz.toml`.
+
 ## API convention
 
 Expose public operations through associated functions on a relevant type
