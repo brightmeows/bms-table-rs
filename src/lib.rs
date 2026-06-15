@@ -35,6 +35,7 @@ mod error;
 pub use crate::error::BmsTableError;
 
 use std::collections::BTreeMap;
+use std::ops::{Deref, DerefMut};
 
 use htmlparser::{Token, Tokenizer};
 use serde::{Deserialize, Serialize};
@@ -165,16 +166,27 @@ impl BmsTableHeader {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 #[non_exhaustive]
-pub struct BmsTableData {
-    /// Charts
-    pub charts: Vec<ChartItem>,
-}
+pub struct BmsTableData(pub Vec<ChartItem>);
 
 impl BmsTableData {
     /// Creates a new `BmsTableData` with the given chart list.
     #[must_use]
     pub const fn new(charts: Vec<ChartItem>) -> Self {
-        Self { charts }
+        Self(charts)
+    }
+}
+
+impl Deref for BmsTableData {
+    type Target = Vec<ChartItem>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for BmsTableData {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -481,16 +493,27 @@ impl BmsTableInfo {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 #[non_exhaustive]
-pub struct BmsTableList {
-    /// List of entries
-    pub entries: Vec<BmsTableInfo>,
-}
+pub struct BmsTableList(pub Vec<BmsTableInfo>);
 
 impl BmsTableList {
     /// Creates a new `BmsTableList` with the given entries.
     #[must_use]
     pub const fn new(entries: Vec<BmsTableInfo>) -> Self {
-        Self { entries }
+        Self(entries)
+    }
+}
+
+impl Deref for BmsTableList {
+    type Target = Vec<BmsTableInfo>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for BmsTableList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

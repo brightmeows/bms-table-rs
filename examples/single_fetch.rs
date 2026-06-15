@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
             println!(
                 "{}: {} charts, {} courses",
                 table.header.name,
-                table.data.charts.len(),
+                table.data.len(),
                 table.header.course.flatten().len(),
             );
         }

@@ -55,13 +55,9 @@ fn bms_table_list_serializes_as_array() {
     assert!(value.is_array());
 
     let parsed: BmsTableList = serde_json::from_value(value).unwrap();
-    assert_eq!(parsed.entries.len(), 2);
-    let [i0, i1] = parsed.entries.as_slice() else {
-        panic!(
-            "expected two items, got {}: {:?}",
-            parsed.entries.len(),
-            parsed.entries
-        );
+    assert_eq!(parsed.len(), 2);
+    let [i0, i1] = parsed.as_slice() else {
+        panic!("expected two items, got {}: {:?}", parsed.len(), parsed.0);
     };
     assert_eq!(i0.name.as_str(), ".WAS難易度表");
     assert_eq!(i1.symbol.as_str(), "[F]");
@@ -87,5 +83,5 @@ fn bms_table_info_minimal_fields_deserialized_correctly() {
 #[test]
 fn bms_table_list_empty_array_has_no_entries() {
     let list: bms_table::BmsTableList = serde_json::from_value(serde_json::json!([])).unwrap();
-    assert!(list.entries.is_empty());
+    assert!(list.is_empty());
 }
