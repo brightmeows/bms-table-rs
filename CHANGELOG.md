@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0](https://codeberg.org/brightmeows/bms-table-rs/compare/v0.13.0...v0.14.0) - 2026-06-15
+
+### Bug Fixes
+
+- *(ci)* add --all-targets to clippy pre-commit hook
+- remove unsupported --quiet flag from AGENTS.md pre-commit command
+- *(de)* correct stale comment about level default value
+- [**breaking**] default missing/null level to "0" per BMS table spec
+- remove unreachable Value::Null arm in de_numstring
+
+### CI
+
+- document cargo-binstall dependency assumption in release-plz workflow
+
+### Documentation
+
+- add Changelog policy note to AGENTS.md
+- *(example)* add missing doc comments in multi_fetch
+- remove phantom v1.0.0 entry from CHANGELOG
+
+### Features
+
+- add ChartItem::empty() const constructor
+- add Default impls for ChartItem and BmsTableData, Trophy::new
+- *(header)* add effective_tag for spec-compliant tag fallback
+- add BmsTableInfo::new constructor
+- [**breaking**] promote ChartItem spec fields, add level_index, into_flatten, rename listes
+
+### Other
+
+- remove unused license allowances, document level_index O(n)
+
+### Refactoring
+
+- [**breaking**] change BmsTableData/BmsTableList to newtypes with Deref
+- *(examples)* make examples self-contained, remove shared module
+- mark all public types as #[non_exhaustive]
+- unify optional ChartItem field serialization
+- *(lints)* adopt bmsrs-style lint config with pedantic group
+- move all lint configuration to Cargo.toml
+- [**breaking**] rename into_flatten to into_flattened, fix test warnings
+- *(de)* rename de_numstring to deserialize_level for naming consistency
+- *(course-info)* [**breaking**] preserve md5/sha256/extra fields, remove CourseInfoRaw
+- *(example)* remove unnecessary empty-string filter
+- clean up examples and README clarity
+- code quality improvements across the board
+- *(de)* remove Value clone in CourseInfoRaw, unify level default to ""
+- [**breaking**] replace scraper with htmlparser, return &str from extract_url
+- [**breaking**] remove url_pack/name_pack/org_md5/mode from ChartItem, replace anyhow with thiserror
+- *(de)* replace String error type with serde_json::Error in CourseInfoRaw TryFrom
+
+### Testing
+
+- rename tests to follow <scenario>_<expectation> convention
+
 ## [0.13.0](https://codeberg.org/brightmeows/bms-table-rs/compare/v0.12.1...v0.13.0) - 2026-06-13
 
 ### Bug Fixes
