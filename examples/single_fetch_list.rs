@@ -37,8 +37,8 @@ async fn main() -> Result<()> {
         })
         .context("Failed to parse table list JSON")?;
 
-    println!("Fetched {} table list entries.", list.entries.len());
-    for (i, item) in list.entries.iter().take(10).enumerate() {
+    println!("Fetched {} table list entries.", list.len());
+    for (i, item) in list.iter().take(10).enumerate() {
         println!("#{i}: {} [{}] -> {}", item.name, item.symbol, item.url);
     }
 

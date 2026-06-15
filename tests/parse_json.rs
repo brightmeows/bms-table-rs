@@ -95,7 +95,7 @@ fn build_bms_table_from_json_parses_all_fields() {
     assert_eq!(bms_table.header.name, "Test Table");
     assert_eq!(bms_table.header.symbol, "test");
     assert_eq!(bms_table.header.data_url, "charts.json");
-    assert_eq!(bms_table.data.charts.len(), 1);
+    assert_eq!(bms_table.data.len(), 1);
 
     // Input is `"course": [[{...}]]` — nested structure
     let course = extract_course_from_nested(&bms_table.header.course);
@@ -114,11 +114,11 @@ fn build_bms_table_from_json_parses_all_fields() {
     assert!((trophy0.scorerate - 90.0).abs() <= 1e-12);
     assert_eq!(course.md5, vec!["test_md5_1", "test_md5_2"]);
 
-    let [score] = bms_table.data.charts.as_slice() else {
+    let [score] = bms_table.data.as_slice() else {
         panic!(
             "expected one chart, got {}: {:?}",
-            bms_table.data.charts.len(),
-            bms_table.data.charts
+            bms_table.data.len(),
+            bms_table.data.0
         );
     };
     assert_eq!(score.level, "1");
@@ -186,11 +186,11 @@ fn build_bms_table_with_empty_fields_keeps_empty_strings() {
     let header: BmsTableHeader = serde_json::from_value(header_json).unwrap();
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
     let bms_table = BmsTable::new(header, data);
-    let [score] = bms_table.data.charts.as_slice() else {
+    let [score] = bms_table.data.as_slice() else {
         panic!(
             "expected one chart, got {}: {:?}",
-            bms_table.data.charts.len(),
-            bms_table.data.charts
+            bms_table.data.len(),
+            bms_table.data.0
         );
     };
     assert_eq!(score.level, "1");
@@ -212,7 +212,7 @@ fn bms_table_creation_sets_fields_correctly() {
     assert_eq!(bms_table.header.name, "Test Table");
     assert_eq!(bms_table.header.symbol, "test");
     assert!(bms_table.header.course.flatten().is_empty());
-    assert_eq!(bms_table.data.charts.len(), 0);
+    assert_eq!(bms_table.data.len(), 0);
     assert_eq!(bms_table.header.level_order.len(), 2);
 }
 
@@ -242,12 +242,8 @@ fn chart_item_numeric_fields_convert_correctly() {
         }
     ]);
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
-    let [score] = data.charts.as_slice() else {
-        panic!(
-            "expected one chart, got {}: {:?}",
-            data.charts.len(),
-            data.charts
-        );
+    let [score] = data.as_slice() else {
+        panic!("expected one chart, got {}: {:?}", data.len(), data.0);
     };
     assert_eq!(score.level, "0");
     assert_eq!(score.md5, Some("12345".to_string()));
@@ -676,8 +672,8 @@ fn chart_item_new_fields_land_in_extra() {
         }
     ]);
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
-    let [chart] = data.charts.as_slice() else {
-        panic!("expected one chart, got {}", data.charts.len());
+    let [chart] = data.as_slice() else {
+        panic!("expected one chart, got {}", data.len());
     };
     assert_eq!(chart.comment.as_deref(), Some("hard chart"));
     assert_eq!(
@@ -702,8 +698,8 @@ fn chart_item_new_fields_default_to_none() {
         }
     ]);
     let data: BmsTableData = serde_json::from_value(data_json).unwrap();
-    let [chart] = data.charts.as_slice() else {
-        panic!("expected one chart, got {}", data.charts.len());
+    let [chart] = data.as_slice() else {
+        panic!("expected one chart, got {}", data.len());
     };
     assert!(chart.comment.is_none());
     assert!(!chart.extra.contains_key("url_pack"));
@@ -751,15 +747,15 @@ fn course_group_deeply_nested_into_flattened_returns_courses() {
 #[test]
 fn chart_data_empty_array_has_no_charts() {
     let data: BmsTableData = serde_json::from_value(json!([])).unwrap();
-    assert!(data.charts.is_empty());
+    assert!(data.is_empty());
 }
 
 #[test]
 fn chart_item_level_null_defaults_to_zero() {
     let data: BmsTableData =
         serde_json::from_value(json!([{ "level": null, "md5": "abc" }])).unwrap();
-    let [chart] = data.charts.as_slice() else {
-        panic!("expected one chart, got {}", data.charts.len());
+    let [chart] = data.as_slice() else {
+        panic!("expected one chart, got {}", data.len());
     };
     assert_eq!(chart.level, "0");
     assert_eq!(chart.md5.as_deref(), Some("abc"));
@@ -768,8 +764,8 @@ fn chart_item_level_null_defaults_to_zero() {
 #[test]
 fn chart_item_level_zero_converts_to_string() {
     let data: BmsTableData = serde_json::from_value(json!([{ "level": 0, "md5": "abc" }])).unwrap();
-    let [chart] = data.charts.as_slice() else {
-        panic!("expected one chart, got {}", data.charts.len());
+    let [chart] = data.as_slice() else {
+        panic!("expected one chart, got {}", data.len());
     };
     assert_eq!(chart.level, "0");
 }

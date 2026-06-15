@@ -75,13 +75,9 @@ fn bms_table_data_serializes_as_array() {
     assert!(value.is_array());
 
     let parsed: BmsTableData = serde_json::from_value(value).unwrap();
-    assert_eq!(parsed.charts.len(), 2);
-    let [c0, c1] = parsed.charts.as_slice() else {
-        panic!(
-            "expected two charts, got {}: {:?}",
-            parsed.charts.len(),
-            parsed.charts
-        );
+    assert_eq!(parsed.len(), 2);
+    let [c0, c1] = parsed.as_slice() else {
+        panic!("expected two charts, got {}: {:?}", parsed.len(), parsed.0);
     };
     assert_eq!(c0.level.as_str(), "0");
     assert_eq!(c1.level.as_str(), "1");
@@ -135,7 +131,7 @@ fn header_tag_mode_none_skipped_in_serialization() {
 fn bms_table_data_new_constructor_sets_charts() {
     let item = ChartItem::new("12".to_string());
     let data = BmsTableData::new(vec![item]);
-    assert_eq!(data.charts.len(), 1);
+    assert_eq!(data.len(), 1);
 }
 
 #[test]
@@ -148,7 +144,7 @@ fn bms_table_list_new_constructor_sets_entries() {
         Url::parse("https://example.com/table.html").unwrap(),
     );
     let list = BmsTableList::new(vec![info]);
-    assert_eq!(list.entries.len(), 1);
+    assert_eq!(list.len(), 1);
 }
 
 #[test]
@@ -162,7 +158,7 @@ fn chart_item_default_has_zero_level() {
 #[test]
 fn bms_table_data_default_is_empty() {
     let data = BmsTableData::default();
-    assert!(data.charts.is_empty());
+    assert!(data.is_empty());
 }
 
 #[test]
