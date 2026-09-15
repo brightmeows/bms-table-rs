@@ -1,6 +1,6 @@
 # BMS 难度表解析库
 
-[<img alt="codeberg" src="https://img.shields.io/badge/Codeberg-brightmeows/bms--table--rs-218b7e?logo=codeberg&logoColor=white" height="20">](https://codeberg.org/brightmeows/bms-table-rs)
+[<img alt="github" src="https://img.shields.io/badge/github-brightmeows/bms--table--rs-8da0cb?logo=github" height="20">](https://github.com/brightmeows/bms-table-rs)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/bms-table.svg?logo=rust" height="20">](https://crates.io/crates/bms-table)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-bms_table-66c2a5?logo=docs.rs" height="20">](https://docs.rs/bms-table)
 [<img alt="downloads" src="https://img.shields.io/crates/d/bms-table" height="20">](https://crates.io/crates/bms-table)
@@ -38,7 +38,7 @@
 ## 文档与链接
 
 - `docs.rs`：https://docs.rs/bms-table
-- 仓库：https://codeberg.org/brightmeows/bms-table-rs
+- 仓库：https://github.com/brightmeows/bms-table-rs
 
 ## 许可
 
