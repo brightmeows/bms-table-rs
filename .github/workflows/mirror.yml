@@ -4,8 +4,9 @@ on:
   push:
     branches: "main"
   schedule:
-    # 每周兜底重推，收敛单链路失败的漂移窗口
-    - cron: "50 4 * * 1"
+    # 每日兜底重推：GITHUB_TOKEN 完成的推送不触发本 workflow（dependabot
+    # auto-merge 即此类），bot 合并的漂移由本 cron 收敛至至多一天
+    - cron: "50 4 * * *"
 
 jobs:
   mirror:
