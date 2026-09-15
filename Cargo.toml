@@ -53,3 +53,7 @@ pedantic = { level = "deny", priority = -1 }
 
 # === Cargo (manifest hygiene) ===
 cargo = { level = "warn", priority = -1 }
+# serde_derive switched to syn 3 while other transitive crates still use
+# syn 2; the duplication is not actionable from this manifest. Same call
+# as the sibling bmsrs workspace.
+multiple_crate_versions = "allow"
