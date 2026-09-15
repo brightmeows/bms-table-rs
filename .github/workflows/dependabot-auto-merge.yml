@@ -24,6 +24,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           interval: 10s
           timeout: 600s
+          # The AI reviewer posts an informational check (e.g. neutral when a
+          # rebase skipped the review). The gate only needs the CI checks.
+          ignore_pattern: "cubic"
 
       - name: Enable auto-merge
         run: |
